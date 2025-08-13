@@ -34,6 +34,28 @@ class User(AbstractUser):
     @property
     def is_admin_user(self):
         return self.user_type == 'admin' or self.is_superuser
+    
+    def get_fulfilled_requests_count(self):
+        """Get count of requests this donor has fulfilled"""
+        if not self.is_donor:
+            return 0
+        return self.claimed_requests.filter(status='fulfilled').count()
+    
+    def get_total_donated_amount(self):
+        """Get total amount donated by this donor"""
+        if not self.is_donor:
+            return 0
+        from django.db.models import Sum
+        result = self.claimed_requests.filter(status='fulfilled').aggregate(
+            total=Sum('amount')
+        )
+        return result['total'] or 0
+    
+    def get_claimed_requests_count(self):
+        """Get count of requests this donor has claimed (but not yet fulfilled)"""
+        if not self.is_donor:
+            return 0
+        return self.claimed_requests.filter(status='claimed').count()
 
 
 class CauseArea(models.Model):

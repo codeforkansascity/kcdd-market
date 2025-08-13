@@ -25,6 +25,7 @@ urlpatterns = [
     path('donor/<str:username>/', views.donor_public_profile, name='donor_public_profile'),
     path('donor-dashboard/', views.donor_dashboard, name='donor_dashboard'),
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('leaderboard/', views.donor_leaderboard, name='donor_leaderboard'),
     
     # Request management
     path('create-request/', views.create_request, name='create_request'),

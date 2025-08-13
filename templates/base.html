@@ -27,6 +27,9 @@
                     <a href="{% url 'app:request_board' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'request_board' %}text-blue-600 font-semibold{% endif %}">
                         Requests
                     </a>
+                    <a href="{% url 'app:donor_leaderboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'donor_leaderboard' %}text-blue-600 font-semibold{% endif %}">
+                        🏆 Leaderboard
+                    </a>
                     {% if user.is_authenticated %}
                         {% if user.is_admin_user %}
                             <a href="{% url 'app:admin_dashboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-blue-600 font-semibold{% endif %}">
