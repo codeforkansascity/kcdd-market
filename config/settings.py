@@ -25,7 +25,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'debug_toolbar',
     'app',  # Your main app
 ]
 
@@ -38,7 +37,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -108,11 +106,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'app.User'
+
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Debug toolbar
-INTERNAL_IPS = [
-    '127.0.0.1',
-    '0.0.0.0',
-] 
+# Debug settings removed for cleaner development 
