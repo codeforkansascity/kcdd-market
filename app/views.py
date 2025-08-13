@@ -444,6 +444,47 @@ def manage_requests(request):
     return render(request, 'manage_requests.html', context)
 
 
+@login_required
+def admin_create_request(request):
+    """Admin view for creating requests on behalf of organizations"""
+    if not request.user.is_admin_user:
+        messages.error(request, 'Access denied.')
+        return redirect('app:home')
+    
+    if request.method == 'POST':
+        form = RequestForm(request.POST, request.FILES)
+        organization_id = request.POST.get('organization')
+        
+        if form.is_valid() and organization_id:
+            try:
+                organization = Organization.objects.get(id=organization_id)
+                new_request = form.save(commit=False)
+                new_request.organization = organization
+                new_request.save()
+                form.save_m2m()  # Save many-to-many relationships
+                messages.success(request, f'Request created for {organization.name}!')
+                return redirect('app:manage_requests')
+            except Organization.DoesNotExist:
+                messages.error(request, 'Selected organization not found.')
+        else:
+            if not organization_id:
+                messages.error(request, 'Please select an organization.')
+            if not form.is_valid():
+                messages.error(request, f'Form validation failed: {form.errors}')
+    else:
+        form = RequestForm()
+    
+    # Get all approved organizations
+    organizations = Organization.objects.filter(user__is_vetted=True).select_related('user')
+    
+    context = {
+        'form': form,
+        'organizations': organizations,
+        'is_admin_create': True,
+    }
+    return render(request, 'admin_create_request.html', context)
+
+
 # Email notification functions (mocked for now)
 def send_claim_notification(request_obj, donor):
     """Send email when request is claimed"""

@@ -29,6 +29,7 @@ urlpatterns = [
     # Request management
     path('create-request/', views.create_request, name='create_request'),
     path('manage-requests/', views.manage_requests, name='manage_requests'),
+    path('admin-create-request/', views.admin_create_request, name='admin_create_request'),
     
     # AJAX endpoints
     path('api/claim/<uuid:request_id>/', views.claim_request, name='claim_request'),
