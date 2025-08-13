@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count
 from django.db import models
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
@@ -487,6 +487,58 @@ def unclaim_request(request, request_id):
         
     except Exception as e:
         return JsonResponse({'error': f'Failed to release claim: {str(e)}'}, status=500)
+
+
+def donor_leaderboard(request):
+    """Display top donors leaderboard"""
+    
+    # Get top donors by number of fulfilled requests
+    top_donors_by_count = User.objects.filter(
+        user_type='donor',
+        is_vetted=True,
+        claimed_requests__status='fulfilled',
+        donor_profile__isnull=False  # Ensure they have a profile
+    ).annotate(
+        fulfilled_count=Count('claimed_requests', filter=models.Q(claimed_requests__status='fulfilled')),
+        total_donated=Sum('claimed_requests__amount', filter=models.Q(claimed_requests__status='fulfilled'))
+    ).order_by('-fulfilled_count', '-total_donated')[:10]
+    
+    # Get top donors by total amount donated
+    top_donors_by_amount = User.objects.filter(
+        user_type='donor',
+        is_vetted=True,
+        claimed_requests__status='fulfilled',
+        donor_profile__isnull=False  # Ensure they have a profile
+    ).annotate(
+        fulfilled_count=Count('claimed_requests', filter=models.Q(claimed_requests__status='fulfilled')),
+        total_donated=Sum('claimed_requests__amount', filter=models.Q(claimed_requests__status='fulfilled'))
+    ).order_by('-total_donated', '-fulfilled_count')[:10]
+    
+    # Get overall stats
+    total_donors = User.objects.filter(user_type='donor', is_vetted=True).count()
+    total_fulfilled = User.objects.filter(
+        user_type='donor',
+        claimed_requests__status='fulfilled'
+    ).aggregate(
+        count=Count('claimed_requests', filter=models.Q(claimed_requests__status='fulfilled'))
+    )['count'] or 0
+    
+    total_amount = User.objects.filter(
+        user_type='donor',
+        claimed_requests__status='fulfilled'
+    ).aggregate(
+        amount=Sum('claimed_requests__amount', filter=models.Q(claimed_requests__status='fulfilled'))
+    )['amount'] or 0
+    
+    context = {
+        'top_donors_by_count': top_donors_by_count,
+        'top_donors_by_amount': top_donors_by_amount,
+        'total_donors': total_donors,
+        'total_fulfilled': total_fulfilled,
+        'total_amount': total_amount,
+    }
+    
+    return render(request, 'donor_leaderboard.html', context)
 
 
 def request_detail(request, request_id):
