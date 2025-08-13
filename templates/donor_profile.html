@@ -1,15 +1,25 @@
 {% extends 'base.html' %}
 
-{% block title %}Donor Profile - KCDD Matchmaking Portal{% endblock %}
+{% block title %}Donor Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-    <div class="max-w-4xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold mb-2">Donor Profile</h1>
-            <p class="text-gray-600">Manage your giving preferences and track your contributions</p>
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Donor Dashboard</h1>
+        <div class="flex gap-4">
+            <a href="{% url 'app:donor_public_profile' user.username %}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                View Public Profile
+            </a>
+            <a href="{% url 'app:request_board' %}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Browse Requests
+            </a>
         </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8 mb-8">
+        <!-- Donor Profile -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Donor Profile</h2>
 
         <!-- Profile Information -->
         <div class="bg-white rounded-lg shadow-sm border mb-8">

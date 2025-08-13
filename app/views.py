@@ -100,47 +100,104 @@ def request_board(request):
 
 @login_required
 def profile(request):
-    """User profile based on user type"""
+    """User profile redirect based on user type"""
     user = request.user
     
-    if user.user_type == 'cbo':
-        return cbo_profile(request)
+    # Superusers should go to admin dashboard regardless of user_type
+    if user.is_superuser or user.user_type == 'admin':
+        return redirect('app:admin_dashboard')
+    elif user.user_type == 'cbo':
+        return redirect('app:cbo_dashboard')
     elif user.user_type == 'donor':
-        return donor_profile(request)
-    elif user.user_type == 'admin':
-        return admin_dashboard(request)
+        return redirect('app:donor_dashboard')
     else:
-        return redirect('home')
+        return redirect('app:home')
+
+
+def cbo_public_profile(request, username):
+    """Public CBO profile page"""
+    try:
+        cbo_user = User.objects.get(username=username, user_type='cbo')
+        organization = cbo_user.organization
+    except (User.DoesNotExist, Organization.DoesNotExist):
+        messages.error(request, 'Organization not found.')
+        return redirect('app:home')
+    
+    # Get CBO's public requests
+    public_requests = Request.objects.filter(
+        organization=organization, 
+        status__in=['open', 'claimed']
+    ).order_by('-created_at')
+    
+    context = {
+        'organization': organization,
+        'requests': public_requests,
+        'is_public': True,
+    }
+    return render(request, 'cbo_public_profile.html', context)
 
 
 @login_required
-def cbo_profile(request):
-    """CBO profile and request management"""
-    if not request.user.is_cbo:
+def cbo_dashboard(request):
+    """CBO dashboard for managing profile and requests"""
+    if request.user.user_type != 'cbo':
         messages.error(request, 'Access denied.')
         return redirect('app:home')
     
-    # Get or create organization profile
     try:
         organization = request.user.organization
     except Organization.DoesNotExist:
-        organization = None
+        # Create organization profile if it doesn't exist
+        organization = Organization.objects.create(user=request.user)
     
-    # Get user's requests
-    requests = Request.objects.filter(organization__user=request.user).order_by('-created_at') if organization else []
+    if request.method == 'POST':
+        form = OrganizationProfileForm(request.POST, request.FILES, instance=organization)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('app:cbo_dashboard')
+    else:
+        form = OrganizationProfileForm(instance=organization)
+    
+    # Get CBO's requests
+    cbo_requests = Request.objects.filter(organization=organization).order_by('-created_at')
     
     context = {
-        'user': request.user,
+        'form': form,
         'organization': organization,
-        'requests': requests,
+        'requests': cbo_requests,
+        'is_dashboard': True,
     }
-    return render(request, 'cbo_profile.html', context)
+    return render(request, 'cbo_dashboard.html', context)
+
+
+def donor_public_profile(request, username):
+    """Public donor profile page"""
+    try:
+        donor_user = User.objects.get(username=username, user_type='donor')
+        donor_profile = donor_user.donor_profile
+    except (User.DoesNotExist, DonorProfile.DoesNotExist):
+        messages.error(request, 'Donor not found.')
+        return redirect('app:home')
+    
+    # Get donor's fulfilled requests (public)
+    fulfilled_requests = Request.objects.filter(
+        donor=donor_user, 
+        status='fulfilled'
+    ).order_by('-fulfilled_at')
+    
+    context = {
+        'donor_profile': donor_profile,
+        'fulfilled_requests': fulfilled_requests,
+        'is_public': True,
+    }
+    return render(request, 'donor_public_profile.html', context)
 
 
 @login_required
-def donor_profile(request):
-    """Donor profile and claimed requests"""
-    if not request.user.is_donor:
+def donor_dashboard(request):
+    """Donor dashboard for managing profile and donations"""
+    if request.user.user_type != 'donor':
         messages.error(request, 'Access denied.')
         return redirect('app:home')
     
@@ -148,19 +205,30 @@ def donor_profile(request):
     try:
         donor_profile = request.user.donor_profile
     except DonorProfile.DoesNotExist:
-        donor_profile = None
+        # Create donor profile if it doesn't exist
+        donor_profile = DonorProfile.objects.create(user=request.user)
+    
+    if request.method == 'POST':
+        form = DonorProfileForm(request.POST, request.FILES, instance=donor_profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('app:donor_dashboard')
+    else:
+        form = DonorProfileForm(instance=donor_profile)
     
     # Get user's claimed and fulfilled requests
     claimed_requests = Request.objects.filter(donor=request.user, status='claimed').order_by('-claimed_at')
     fulfilled_requests = Request.objects.filter(donor=request.user, status='fulfilled').order_by('-fulfilled_at')
     
     context = {
-        'user': request.user,
+        'form': form,
         'donor_profile': donor_profile,
         'claimed_requests': claimed_requests,
         'fulfilled_requests': fulfilled_requests,
+        'is_dashboard': True,
     }
-    return render(request, 'donor_profile.html', context)
+    return render(request, 'donor_dashboard.html', context)
 
 
 @login_required
@@ -168,7 +236,7 @@ def admin_dashboard(request):
     """Admin dashboard for oversight"""
     if not request.user.is_admin_user:
         messages.error(request, 'Access denied.')
-        return redirect('home')
+        return redirect('app:home')
     
     # Handle CBO approval/rejection
     if request.method == 'POST':
@@ -281,6 +349,99 @@ def request_detail(request, request_id):
         'request_obj': None,  # get_object_or_404(Request, id=request_id)
     }
     return render(request, 'request_detail.html', context)
+
+
+@login_required
+def create_request(request):
+    """Create a new request (CBOs only)"""
+    if request.user.user_type != 'cbo':
+        messages.error(request, 'Only Community-Based Organizations can create requests.')
+        return redirect('app:home')
+    
+    # Ensure user has an organization profile
+    try:
+        organization = request.user.organization
+    except Organization.DoesNotExist:
+        messages.error(request, 'Please complete your organization profile first.')
+        return redirect('app:cbo_dashboard')
+    
+    if not request.user.is_vetted:
+        messages.error(request, 'Your organization must be approved before creating requests.')
+        return redirect('app:cbo_dashboard')
+    
+    if request.method == 'POST':
+        form = RequestForm(request.POST, request.FILES)
+        if form.is_valid():
+            new_request = form.save(commit=False)
+            new_request.organization = organization
+            new_request.save()
+            form.save_m2m()  # Save many-to-many relationships
+            messages.success(request, 'Request created successfully!')
+            return redirect('app:cbo_dashboard')
+    else:
+        form = RequestForm()
+    
+    context = {
+        'form': form,
+        'organization': organization,
+    }
+    return render(request, 'create_request.html', context)
+
+
+@login_required
+def manage_requests(request):
+    """Admin view for managing all requests"""
+    if not request.user.is_admin_user:
+        messages.error(request, 'Access denied.')
+        return redirect('app:home')
+    
+    # Handle request status updates
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        request_id = request.POST.get('request_id')
+        
+        if action and request_id:
+            try:
+                req_obj = Request.objects.get(id=request_id)
+                if action == 'approve':
+                    req_obj.status = 'open'
+                    req_obj.save()
+                    messages.success(request, f'Request "{req_obj.title}" approved')
+                elif action == 'reject':
+                    req_obj.status = 'rejected'
+                    req_obj.save()
+                    messages.warning(request, f'Request "{req_obj.title}" rejected')
+                elif action == 'delete':
+                    title = req_obj.title
+                    req_obj.delete()
+                    messages.warning(request, f'Request "{title}" deleted')
+            except Request.DoesNotExist:
+                messages.error(request, 'Request not found')
+        
+        return redirect('app:manage_requests')
+    
+    # Get all requests with filtering
+    status_filter = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '')
+    
+    requests_queryset = Request.objects.select_related('organization', 'donor').order_by('-created_at')
+    
+    if status_filter != 'all':
+        requests_queryset = requests_queryset.filter(status=status_filter)
+    
+    if search_query:
+        requests_queryset = requests_queryset.filter(
+            Q(title__icontains=search_query) |
+            Q(organization__name__icontains=search_query)
+        )
+    
+    context = {
+        'requests': requests_queryset,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'status_choices': Request.STATUS_CHOICES,
+    }
+    return render(request, 'manage_requests.html', context)
 
 
 # Email notification functions (mocked for now)

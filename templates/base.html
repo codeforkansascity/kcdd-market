@@ -28,13 +28,22 @@
                         Requests
                     </a>
                     {% if user.is_authenticated %}
-                        <a href="{% url 'app:profile' %}" class="text-gray-700 hover:text-blue-600 {% if 'profile' in request.resolver_match.url_name %}text-blue-600 font-semibold{% endif %}">
-                            Profile
-                        </a>
                         {% if user.is_admin_user %}
-                        <a href="{% url 'app:admin_dashboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-blue-600 font-semibold{% endif %}">
-                            Dashboard
-                        </a>
+                            <a href="{% url 'app:admin_dashboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-blue-600 font-semibold{% endif %}">
+                                Admin Dashboard
+                            </a>
+                        {% elif user.user_type == 'cbo' %}
+                            <a href="{% url 'app:cbo_dashboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'cbo_dashboard' %}text-blue-600 font-semibold{% endif %}">
+                                My Dashboard
+                            </a>
+                        {% elif user.user_type == 'donor' %}
+                            <a href="{% url 'app:donor_dashboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'donor_dashboard' %}text-blue-600 font-semibold{% endif %}">
+                                My Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{% url 'app:profile' %}" class="text-gray-700 hover:text-blue-600">
+                                Profile
+                            </a>
                         {% endif %}
                     {% endif %}
                 </nav>
