@@ -1,0 +1,35 @@
+Hello {{ organization.name }},
+
+Excellent news! Your technology equipment request has been claimed by a donor.
+
+REQUEST DETAILS:
+{{ request.description }}
+Amount: ${{ request.amount }}
+Urgency: {{ request.get_urgency_display }}
+
+DONOR INFORMATION:
+{% if donor_profile %}
+Name: {{ donor_profile.name }}
+Email: {{ donor.email }}
+Phone: {{ donor_profile.phone }}
+{% else %}
+Name: {{ donor.get_full_name }}
+Email: {{ donor.email }}
+{% endif %}
+
+{% if request.donor_note %}
+DONOR MESSAGE:
+{{ request.donor_note }}
+{% endif %}
+
+NEXT STEPS:
+1. The donor will contact you directly to arrange fulfillment
+2. Once fulfilled, please mark the request as complete in the portal
+3. Provide feedback to help improve the process
+
+Manage your requests: {{ portal_url }}/profile/
+
+If you have any questions, contact us at support@kcdd.org.
+
+Best regards,
+KC Digital Drive Team

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}CBO Profile - KCDD Matchmaking Portal{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">Organization Profile</h1>
+            {% if not user.is_vetted %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 class="font-semibold text-yellow-900 mb-2">⏳ Account Under Review</h3>
+                <p class="text-sm text-yellow-800">
+                    Your account is being reviewed by KCDD staff. You'll receive an email notification once approved.
+                    Please complete your organization profile below to expedite the process.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Organization Profile -->
+        <div class="bg-white rounded-lg shadow-sm border mb-8">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-semibold">Organization Information</h2>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        Edit Profile
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                {% if organization %}
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-medium text-gray-700">Organization Name</h3>
+                            <p class="text-lg">{{ organization.name }}</p>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-700">ZIP Code</h3>
+                            <p class="text-lg">{{ organization.zipcode }}</p>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-700">Email</h3>
+                            <p class="text-lg">{{ organization.email }}</p>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-gray-700">Phone</h3>
+                            <p class="text-lg">{{ organization.phone|default:"Not provided" }}</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <h3 class="font-medium text-gray-700">Mission</h3>
+                            <p class="text-lg">{{ organization.mission|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-4">🏢</div>
+                        <h3 class="text-xl font-semibold mb-2">Complete Your Profile</h3>
+                        <p class="text-gray-600 mb-4">Please add your organization information to continue</p>
+                        <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            Add Organization Info
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Requests Section -->
+        <div class="bg-white rounded-lg shadow-sm border">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-semibold">Your Requests</h2>
+                    {% if user.is_vetted %}
+                    <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                        Add New Request
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="p-6">
+                {% if requests %}
+                    <div class="space-y-4">
+                        {% for request in requests %}
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold">{{ request.description|truncatewords:10 }}</h3>
+                                    <div class="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                                        <span>${{ request.amount|floatformat:0 }}</span>
+                                        <span class="px-2 py-1 rounded-full {{ request.urgency_badge_class }}">
+                                            {{ request.get_urgency_display }}
+                                        </span>
+                                        <span>{{ request.created_at|date:"M j, Y" }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-sm {% if request.status == 'open' %}text-blue-600{% elif request.status == 'claimed' %}text-yellow-600{% else %}text-green-600{% endif %}">
+                                        {{ request.get_status_display }}
+                                    </span>
+                                    <div class="mt-2 flex gap-2">
+                                        <button class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                                        <button class="text-red-600 hover:text-red-800 text-sm">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-4">📝</div>
+                        <h3 class="text-xl font-semibold mb-2">No Requests Yet</h3>
+                        {% if user.is_vetted %}
+                            <p class="text-gray-600 mb-4">Create your first technology equipment request</p>
+                            <button class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                                Create Request
+                            </button>
+                        {% else %}
+                            <p class="text-gray-600">You can add requests once your account is approved</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

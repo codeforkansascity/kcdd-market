@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Browse Requests - KCDD Matchmaking Portal{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2">Technology Equipment Requests</h1>
+        <p class="text-gray-600">Browse requests from community-based organizations throughout Kansas City</p>
+    </div>
+    
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+        <form method="get" class="space-y-4">
+            <div class="grid md:grid-cols-4 gap-4">
+                <div>
+                    <label for="{{ form.q.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Search
+                    </label>
+                    {{ form.q }}
+                </div>
+                
+                <div>
+                    <label for="{{ form.cause.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Cause Area
+                    </label>
+                    {{ form.cause }}
+                </div>
+                
+                <div>
+                    <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Status
+                    </label>
+                    {{ form.status }}
+                </div>
+                
+                <div>
+                    <label for="{{ form.sort.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Sort By
+                    </label>
+                    {{ form.sort }}
+                </div>
+            </div>
+            
+            <div class="flex gap-3">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                    Apply Filters
+                </button>
+                <a href="{% url 'app:request_board' %}" class="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Results -->
+    {% if requests %}
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for request in requests %}
+                <div class="bg-white rounded-lg shadow-sm border hover:shadow-md transition">
+                    <div class="p-6">
+                        <!-- Organization Header -->
+                        <div class="flex items-start gap-3 mb-4">
+                            <div class="text-2xl">{{ request.organization.display_logo }}</div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-lg truncate">{{ request.organization.name }}</h3>
+                                <p class="text-sm text-gray-600">{{ request.cause_area.name }}</p>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs px-2 py-1 rounded-full {{ request.urgency_badge_class }}">
+                                    {{ request.get_urgency_display }}
+                                </span>
+                                {% if request.status != 'open' %}
+                                <span class="text-xs px-2 py-1 rounded-full {% if request.status == 'claimed' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ request.get_status_display }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Request Details -->
+                        <p class="text-gray-700 text-sm mb-4 line-clamp-3">{{ request.description|truncatewords:20 }}</p>
+                        
+                        <!-- Meta Information -->
+                        <div class="text-xs text-gray-500 mb-4 space-y-1">
+                            <div>📍 ZIP {{ request.zipcode }}</div>
+                            {% if request.identity_categories.exists %}
+                            <div>👥 {{ request.identity_categories.all|join:", " }}</div>
+                            {% endif %}
+                            <div>📅 {{ request.created_at|date:"M j, Y" }}</div>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div class="flex justify-between items-center pt-4 border-t">
+                            <div class="font-semibold text-lg text-green-600">
+                                ${{ request.amount|floatformat:0 }}
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="{% url 'app:request_detail' request.id %}" 
+                                   class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    Details →
+                                </a>
+                                {% if request.is_open and user.is_authenticated and user.is_donor %}
+                                <button onclick="claimRequest('{{ request.id }}')" 
+                                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
+                                    Claim
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="flex justify-center">
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                       class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Previous
+                    </a>
+                {% endif %}
+                
+                <span class="px-3 py-2 bg-blue-600 text-white rounded-lg">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                       class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Next
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl font-semibold mb-2">No requests found</h3>
+            <p class="text-gray-600 mb-6">Try adjusting your search or filter criteria</p>
+            <a href="{% url 'app:request_board' %}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                View All Requests
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function claimRequest(requestId) {
+    if (confirm('Are you sure you want to claim this request?')) {
+        fetch(`/api/claim/${requestId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Request claimed successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

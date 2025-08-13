@@ -1,0 +1,21 @@
+Hello {{ user.get_full_name }},
+
+Great news! Your KCDD Matchmaking Portal account has been approved and is now active.
+
+{% if organization %}
+Organization: {{ organization.name }}
+{% endif %}
+
+You can now:
+- Submit technology equipment requests
+- Manage your organization profile
+- Track request status and fulfillment
+
+Get started: {{ portal_url }}
+
+If you have any questions, please contact us at support@kcdd.org.
+
+Welcome to the KCDD community!
+
+Best regards,
+KC Digital Drive Team

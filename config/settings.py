@@ -112,4 +112,7 @@ AUTH_USER_MODEL = 'app.User'
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Debug settings removed for cleaner development 
+# Debug settings removed for cleaner development
+
+# Email Configuration
+from .email_settings import * 
