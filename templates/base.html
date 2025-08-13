@@ -14,7 +14,6 @@
         <div class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="text-2xl">🔗</div>
                     <a href="{% url 'app:home' %}" class="text-xl font-semibold text-gray-900 hover:text-blue-600">
                         KCDD Matchmaking Portal
                     </a>
@@ -28,7 +27,7 @@
                         Requests
                     </a>
                     <a href="{% url 'app:donor_leaderboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'donor_leaderboard' %}text-blue-600 font-semibold{% endif %}">
-                        🏆 Leaderboard
+                        Leaderboard
                     </a>
                     {% if user.is_authenticated %}
                         {% if user.is_admin_user %}
