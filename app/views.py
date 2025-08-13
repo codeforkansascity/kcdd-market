@@ -492,28 +492,31 @@ def unclaim_request(request, request_id):
 def donor_leaderboard(request):
     """Display top donors leaderboard"""
     from django.db.models import Case, When, Value, IntegerField, DecimalField
+    from django.db.models.functions import Coalesce
     
-    # Get all vetted donors with profiles, including those with 0 fulfilled requests
+    # Get all vetted donors, including those with 0 fulfilled requests
+    # Remove the profile requirement for now to see all donors
     all_donors = User.objects.filter(
         user_type='donor',
-        is_vetted=True,
-        donor_profile__isnull=False  # Ensure they have a profile
-    ).annotate(
+        is_vetted=True
+    ).select_related('donor_profile').annotate(
         fulfilled_count=Count('claimed_requests', filter=models.Q(claimed_requests__status='fulfilled')),
-        total_donated=Sum(
-            'claimed_requests__amount', 
-            filter=models.Q(claimed_requests__status='fulfilled'),
-            default=Value(0, output_field=DecimalField())
+        total_donated=Coalesce(
+            Sum('claimed_requests__amount', filter=models.Q(claimed_requests__status='fulfilled')),
+            Value(0, output_field=DecimalField())
         )
     )
     
+    # Only include donors that have profiles for display
+    donors_with_profiles = all_donors.filter(donor_profile__isnull=False)
+    
     # Order by fulfilled count first, then by total donated (for ties)
-    donors_by_count = all_donors.order_by('-fulfilled_count', '-total_donated')
+    donors_by_count = donors_with_profiles.order_by('-fulfilled_count', '-total_donated')
     
     # Order by total donated first, then by fulfilled count (for ties)
-    donors_by_amount = all_donors.order_by('-total_donated', '-fulfilled_count')
+    donors_by_amount = donors_with_profiles.order_by('-total_donated', '-fulfilled_count')
     
-    # Get overall stats
+    # Get overall stats from all donors (including those without profiles)
     total_donors = all_donors.count()
     total_fulfilled = all_donors.aggregate(
         count=Sum('fulfilled_count')

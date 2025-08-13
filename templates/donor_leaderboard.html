@@ -43,6 +43,7 @@
 </section>
 
 <div class="container mx-auto px-4 py-16">
+
     <!-- Enhanced Leaderboard Tabs -->
     <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden mb-16">
         <!-- Tab Headers -->
@@ -64,9 +65,9 @@
             <!-- Top Donors by Request Count -->
             <div id="requests-content" class="tab-content">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Top Donors by Requests Fulfilled</h2>
-                {% if top_donors_by_count %}
+                {% if donors_by_count %}
                     <div class="space-y-4">
-                        {% for donor in top_donors_by_count %}
+                        {% for donor in donors_by_count %}
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div class="flex items-center space-x-4">
                                 <!-- Rank -->
@@ -143,9 +144,9 @@
             <!-- Top Donors by Amount -->
             <div id="amount-content" class="tab-content hidden">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Top Donors by Total Amount</h2>
-                {% if top_donors_by_amount %}
+                {% if donors_by_amount %}
                     <div class="space-y-4">
-                        {% for donor in top_donors_by_amount %}
+                        {% for donor in donors_by_amount %}
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div class="flex items-center space-x-4">
                                 <!-- Rank -->
