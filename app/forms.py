@@ -60,8 +60,8 @@ class OrganizationProfileForm(forms.ModelForm):
             'address', 'zipcode', 'ein', 'cause_areas', 'logo_emoji'
         ]
         widgets = {
-            'mission': forms.Textarea(rows=4),
-            'address': forms.Textarea(rows=3),
+            'mission': forms.Textarea(attrs={'rows': 4}),
+            'address': forms.Textarea(attrs={'rows': 3}),
             'cause_areas': forms.CheckboxSelectMultiple,
         }
 
@@ -110,7 +110,7 @@ class RequestForm(forms.ModelForm):
             'zipcode', 'identity_categories'
         ]
         widgets = {
-            'description': forms.Textarea(rows=4),
+            'description': forms.Textarea(attrs={'rows': 4}),
             'identity_categories': forms.CheckboxSelectMultiple,
         }
 
@@ -129,7 +129,7 @@ class RequestForm(forms.ModelForm):
 class ClaimRequestForm(forms.Form):
     """Form for claiming a request"""
     donor_note = forms.CharField(
-        widget=forms.Textarea(rows=4),
+        widget=forms.Textarea(attrs={'rows': 4}),
         required=False,
         help_text="Share your fulfillment plan, timing, questions, etc. (optional)",
         label="Message to the CBO"
@@ -159,7 +159,7 @@ class FulfillmentForm(forms.Form):
         label="Were you satisfied with the process?"
     )
     notes = forms.CharField(
-        widget=forms.Textarea(rows=3),
+        widget=forms.Textarea(attrs={'rows': 3}),
         required=False,
         label="Notes / feedback"
     )
