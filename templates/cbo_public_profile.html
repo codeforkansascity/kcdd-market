@@ -12,7 +12,7 @@
                     <img src="{{ organization.logo.url }}" alt="{{ organization.name }} logo" class="w-24 h-24 rounded-lg object-cover">
                 {% else %}
                     <div class="w-24 h-24 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <span class="text-3xl font-bold text-blue-600">{{ organization.name|first }}</span>
+                        <span class="text-3xl">{{ organization.display_logo }}</span>
                     </div>
                 {% endif %}
                 <div>

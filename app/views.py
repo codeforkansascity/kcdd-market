@@ -186,9 +186,13 @@ def donor_public_profile(request, username):
         status='fulfilled'
     ).order_by('-fulfilled_at')
     
+    # Calculate total amount given
+    total_given = sum(req.amount for req in fulfilled_requests) if fulfilled_requests else 0
+    
     context = {
         'donor_profile': donor_profile,
         'fulfilled_requests': fulfilled_requests,
+        'total_given': total_given,
         'is_public': True,
     }
     return render(request, 'donor_public_profile.html', context)
@@ -221,11 +225,15 @@ def donor_dashboard(request):
     claimed_requests = Request.objects.filter(donor=request.user, status='claimed').order_by('-claimed_at')
     fulfilled_requests = Request.objects.filter(donor=request.user, status='fulfilled').order_by('-fulfilled_at')
     
+    # Calculate total amount given
+    total_given = sum(req.amount for req in fulfilled_requests) if fulfilled_requests else 0
+    
     context = {
         'form': form,
         'donor_profile': donor_profile,
         'claimed_requests': claimed_requests,
         'fulfilled_requests': fulfilled_requests,
+        'total_given': total_given,
         'is_dashboard': True,
     }
     return render(request, 'donor_dashboard.html', context)
@@ -327,26 +335,176 @@ def register(request):
 @login_required
 def claim_request(request, request_id):
     """Claim a request (for donors)"""
+    import json
+    from django.shortcuts import get_object_or_404
+    from django.utils import timezone
+    from .models import Request, RequestHistory
+    
     if request.user.user_type != 'donor':
         return JsonResponse({'error': 'Only donors can claim requests'}, status=403)
     
-    # Will implement after migrations
-    return JsonResponse({'success': True, 'message': 'Request claimed successfully'})
+    if not request.user.is_vetted:
+        return JsonResponse({'error': 'Only vetted donors can claim requests'}, status=403)
+    
+    try:
+        request_obj = get_object_or_404(Request, id=request_id)
+        
+        # Check if request is available
+        if request_obj.status != 'open':
+            return JsonResponse({'error': 'This request is no longer available'}, status=400)
+        
+        # Parse request body for donor note
+        try:
+            data = json.loads(request.body)
+            donor_note = data.get('donor_note', '').strip()
+        except (json.JSONDecodeError, AttributeError):
+            donor_note = ''
+        
+        # Update request
+        request_obj.status = 'claimed'
+        request_obj.donor = request.user
+        request_obj.donor_note = donor_note
+        request_obj.claimed_at = timezone.now()
+        request_obj.save()
+        
+        # Create history record
+        RequestHistory.objects.create(
+            request=request_obj,
+            user=request.user,
+            action='claimed',
+            description=f"Request claimed by {request.user.get_full_name() or request.user.username}"
+        )
+        
+        # Send notification email
+        try:
+            send_request_claimed_email(request_obj, request.user)
+        except Exception as e:
+            # Log the error but don't fail the claim
+            print(f"Failed to send claim notification email: {e}")
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Request claimed successfully',
+            'claimed_at': request_obj.claimed_at.isoformat()
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to claim request: {str(e)}'}, status=500)
 
 
 @require_POST
 @login_required
 def fulfill_request(request, request_id):
     """Mark request as fulfilled"""
-    # Will implement after migrations
-    return JsonResponse({'success': True, 'message': 'Request marked as fulfilled'})
+    from django.shortcuts import get_object_or_404
+    from django.utils import timezone
+    from .models import Request, RequestHistory, FulfillmentRecord
+    
+    try:
+        request_obj = get_object_or_404(Request, id=request_id)
+        
+        # Check permissions
+        if request_obj.donor != request.user and not request.user.is_admin_user:
+            return JsonResponse({'error': 'Only the claiming donor can mark as fulfilled'}, status=403)
+        
+        # Check if request is in claimed status
+        if request_obj.status != 'claimed':
+            return JsonResponse({'error': 'Request must be claimed before it can be fulfilled'}, status=400)
+        
+        # Update request
+        request_obj.status = 'fulfilled'
+        request_obj.fulfilled_at = timezone.now()
+        request_obj.save()
+        
+        # Create fulfillment record
+        FulfillmentRecord.objects.create(
+            request=request_obj,
+            fulfillment_type='monetary',  # Default, can be updated later
+            donor_satisfied=True,
+            cbo_satisfied=True
+        )
+        
+        # Create history record
+        RequestHistory.objects.create(
+            request=request_obj,
+            user=request.user,
+            action='fulfilled',
+            description=f"Request fulfilled by {request.user.get_full_name() or request.user.username}"
+        )
+        
+        # TODO: Send fulfillment notification emails
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Request marked as fulfilled successfully',
+            'fulfilled_at': request_obj.fulfilled_at.isoformat()
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to fulfill request: {str(e)}'}, status=500)
+
+
+@require_POST
+@login_required
+def unclaim_request(request, request_id):
+    """Release a claimed request (for donors who claimed it)"""
+    from django.shortcuts import get_object_or_404
+    from .models import Request, RequestHistory
+    
+    try:
+        request_obj = get_object_or_404(Request, id=request_id)
+        
+        # Check permissions
+        if request_obj.donor != request.user and not request.user.is_admin_user:
+            return JsonResponse({'error': 'Only the claiming donor can release this claim'}, status=403)
+        
+        # Check if request is in claimed status
+        if request_obj.status != 'claimed':
+            return JsonResponse({'error': 'Request is not currently claimed'}, status=400)
+        
+        # Store donor info for history
+        donor_name = request_obj.donor.get_full_name() or request_obj.donor.username
+        
+        # Reset request to open status
+        request_obj.status = 'open'
+        request_obj.donor = None
+        request_obj.donor_note = ''
+        request_obj.claimed_at = None
+        request_obj.save()
+        
+        # Create history record
+        RequestHistory.objects.create(
+            request=request_obj,
+            user=request.user,
+            action='updated',
+            description=f"Claim released by {donor_name} - request is now available again"
+        )
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Claim released successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to release claim: {str(e)}'}, status=500)
 
 
 def request_detail(request, request_id):
     """Request detail view"""
-    # Will implement after migrations
+    from django.shortcuts import get_object_or_404
+    from .models import Request
+    
+    request_obj = get_object_or_404(Request, id=request_id)
+    
+    # Get related requests (same cause area, different organization)
+    related_requests = Request.objects.filter(
+        cause_area=request_obj.cause_area,
+        status='open'
+    ).exclude(id=request_obj.id)[:3]
+    
     context = {
-        'request_obj': None,  # get_object_or_404(Request, id=request_id)
+        'request_obj': request_obj,
+        'related_requests': related_requests,
     }
     return render(request, 'request_detail.html', context)
 

@@ -54,9 +54,12 @@ class Organization(models.Model):
 
     @property
     def display_logo(self):
-        """Return logo URL or emoji fallback"""
-        if self.logo:
-            return self.logo.url
+        """Return emoji for text display (used in cards/lists)"""
+        return self.logo_emoji or "🏢"
+    
+    @property
+    def logo_display(self):
+        """Return emoji fallback for display consistency"""
         return self.logo_emoji or "🏢"
 
 

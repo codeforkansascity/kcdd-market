@@ -33,6 +33,7 @@ urlpatterns = [
     
     # AJAX endpoints
     path('api/claim/<uuid:request_id>/', views.claim_request, name='claim_request'),
+    path('api/unclaim/<uuid:request_id>/', views.unclaim_request, name='unclaim_request'),
     path('api/fulfill/<uuid:request_id>/', views.fulfill_request, name='fulfill_request'),
     
     # Future URL modules (when implemented)

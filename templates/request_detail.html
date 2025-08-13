@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ request_obj.organization.name }} Request - KCDD Portal{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <div class="flex items-center space-x-2 text-sm text-gray-600">
+            <a href="{% url 'app:home' %}" class="hover:text-blue-600">Home</a>
+            <span>/</span>
+            <a href="{% url 'app:request_board' %}" class="hover:text-blue-600">Requests</a>
+            <span>/</span>
+            <span class="text-gray-900">Request Details</span>
+        </div>
+    </nav>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2">
+            <!-- Request Header -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                            Technology Request
+                        </h1>
+                        <div class="flex items-center gap-3 text-sm text-gray-600">
+                            <span>{{ request_obj.created_at|date:"M d, Y" }}</span>
+                            <span>•</span>
+                            <span>{{ request_obj.zipcode }}</span>
+                            <span>•</span>
+                            <span class="px-2 py-1 rounded-full text-xs {{ request_obj.urgency_badge_class }}">
+                                {{ request_obj.get_urgency_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Badge -->
+                    <div class="text-right">
+                        {% if request_obj.is_open %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                🟢 Available
+                            </span>
+                        {% elif request_obj.is_claimed %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                🟡 Claimed
+                            </span>
+                        {% elif request_obj.is_fulfilled %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                ✅ Fulfilled
+                            </span>
+                        {% endif %}
+                        
+                        <div class="text-3xl font-bold text-green-600 mt-2">
+                            ${{ request_obj.amount|floatformat:0 }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="prose max-w-none">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Request Details</h3>
+                    <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ request_obj.description }}</p>
+                </div>
+
+                <!-- Identity Categories -->
+                {% if request_obj.identity_categories.exists %}
+                <div class="mt-6">
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">Serving Communities:</h4>
+                    <div class="flex flex-wrap gap-2">
+                        {% for category in request_obj.identity_categories.all %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                {{ category.name }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Claim Status and Actions -->
+            {% if request_obj.is_claimed and request_obj.donor %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-yellow-800 mb-2">
+                            🤝 This request has been claimed
+                        </h3>
+                        <p class="text-yellow-700 mb-2">
+                            Claimed by <strong>{{ request_obj.donor.get_full_name|default:request_obj.donor.username }}</strong> 
+                            on {{ request_obj.claimed_at|date:"M d, Y" }}
+                        </p>
+                        {% if request_obj.donor_note %}
+                            <div class="mt-4 p-4 bg-white rounded border">
+                                <h4 class="font-medium text-gray-900 mb-2">Donor's Message:</h4>
+                                <p class="text-gray-700 whitespace-pre-line">{{ request_obj.donor_note }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Action buttons for the claiming donor -->
+                    {% if user.is_authenticated and user == request_obj.donor %}
+                        <div class="flex gap-2">
+                            <button onclick="fulfillRequest('{{ request_obj.id }}')" 
+                                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm">
+                                Mark as Fulfilled
+                            </button>
+                            <button onclick="unclaimRequest('{{ request_obj.id }}')" 
+                                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition text-sm">
+                                Release Claim
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Claim Form (for available requests) -->
+            {% if request_obj.is_open and user.is_authenticated and user.user_type == 'donor' and user.is_vetted %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold text-blue-800 mb-4">
+                    💡 Ready to help? Claim this request
+                </h3>
+                <form id="claimForm" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="donor_note" class="block text-sm font-medium text-gray-700 mb-2">
+                            Message to the Organization (Optional)
+                        </label>
+                        <textarea id="donor_note" name="donor_note" rows="4" 
+                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  placeholder="Share your fulfillment plan, timeline, questions, etc."></textarea>
+                        <p class="mt-1 text-sm text-gray-500">
+                            This message will be shared with the organization when you claim the request.
+                        </p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="claimRequest('{{ request_obj.id }}')" 
+                                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                            🤝 Claim this Request
+                        </button>
+                        <a href="{% url 'app:request_board' %}" 
+                           class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition font-medium">
+                            Back to Browse
+                        </a>
+                    </div>
+                </form>
+            </div>
+            {% elif request_obj.is_open and user.is_authenticated and user.user_type != 'donor' %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                <p class="text-gray-600 text-center">
+                    Only vetted donors can claim requests. 
+                    <a href="{% url 'app:register' %}" class="text-blue-600 hover:text-blue-800">Register as a donor</a> to help.
+                </p>
+            </div>
+            {% elif request_obj.is_open and not user.is_authenticated %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+                <p class="text-gray-600 text-center">
+                    <a href="{% url 'app:login' %}" class="text-blue-600 hover:text-blue-800">Sign in</a> 
+                    or <a href="{% url 'app:register' %}" class="text-blue-600 hover:text-blue-800">register</a> 
+                    as a donor to claim this request.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Request History -->
+            {% if request_obj.history.exists %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Request Activity</h3>
+                <div class="flow-root">
+                    <ul role="list" class="-mb-8">
+                        {% for history_item in request_obj.history.all %}
+                        <li>
+                            <div class="relative pb-8">
+                                {% if not forloop.last %}
+                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                {% endif %}
+                                <div class="relative flex space-x-3">
+                                    <div>
+                                        <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                                            {% if history_item.action == 'created' %}📝
+                                            {% elif history_item.action == 'claimed' %}🤝
+                                            {% elif history_item.action == 'fulfilled' %}✅
+                                            {% elif history_item.action == 'updated' %}✏️
+                                            {% else %}📋{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                        <div>
+                                            <p class="text-sm text-gray-900">{{ history_item.description }}</p>
+                                            {% if history_item.user %}
+                                            <p class="text-xs text-gray-500">by {{ history_item.user.get_full_name|default:history_item.user.username }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                                            {{ history_item.timestamp|date:"M d, Y g:i A" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- Organization Info -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Organization</h3>
+                <div class="flex items-start space-x-3">
+                    {% if request_obj.organization.logo %}
+                        <img src="{{ request_obj.organization.logo.url }}" alt="{{ request_obj.organization.name }} logo" class="w-12 h-12 rounded-lg object-cover">
+                    {% else %}
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">{{ request_obj.organization.logo_display }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-900">{{ request_obj.organization.name }}</h4>
+                        <p class="text-sm text-gray-600 mt-1">{{ request_obj.organization.mission|truncatewords:15 }}</p>
+                        <div class="mt-3">
+                            <a href="{% url 'app:cbo_public_profile' request_obj.organization.user.username %}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                View Organization Profile →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cause Area -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Cause Area</h3>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl">{{ request_obj.cause_area.emoji }}</span>
+                    <span class="font-medium text-gray-900">{{ request_obj.cause_area.name }}</span>
+                </div>
+                {% if request_obj.cause_area.description %}
+                <p class="text-sm text-gray-600 mt-2">{{ request_obj.cause_area.description }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Contact Information (for claimed requests) -->
+            {% if request_obj.is_claimed and user.is_authenticated %}
+                {% if user == request_obj.donor or user == request_obj.organization.user or user.is_admin_user %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-green-800 mb-3">Contact Information</h3>
+                    
+                    <!-- Organization Contact -->
+                    <div class="mb-4">
+                        <h4 class="font-medium text-gray-900">Organization:</h4>
+                        <p class="text-sm text-gray-700">{{ request_obj.organization.name }}</p>
+                        <p class="text-sm text-gray-600">{{ request_obj.organization.email }}</p>
+                        {% if request_obj.organization.phone %}
+                        <p class="text-sm text-gray-600">{{ request_obj.organization.phone }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Donor Contact (if applicable) -->
+                    {% if request_obj.donor and user != request_obj.donor %}
+                    <div>
+                        <h4 class="font-medium text-gray-900">Donor:</h4>
+                        <p class="text-sm text-gray-700">{{ request_obj.donor.get_full_name|default:request_obj.donor.username }}</p>
+                        <p class="text-sm text-gray-600">{{ request_obj.donor.email }}</p>
+                        {% if request_obj.donor.donor_profile.phone %}
+                        <p class="text-sm text-gray-600">{{ request_obj.donor.donor_profile.phone }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- Related Requests -->
+            {% if related_requests %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Similar Requests</h3>
+                <div class="space-y-3">
+                    {% for related_request in related_requests %}
+                    <div class="border rounded-lg p-3 hover:bg-gray-50 transition">
+                        <a href="{% url 'app:request_detail' related_request.id %}" class="block">
+                            <h4 class="font-medium text-gray-900 text-sm">{{ related_request.organization.name }}</h4>
+                            <p class="text-xs text-gray-600 mt-1">{{ related_request.description|truncatewords:10 }}</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-sm font-semibold text-green-600">${{ related_request.amount|floatformat:0 }}</span>
+                                <span class="text-xs px-2 py-1 rounded-full {{ related_request.urgency_badge_class }}">
+                                    {{ related_request.get_urgency_display }}
+                                </span>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Fulfillment Modal -->
+<div id="fulfillmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <span class="text-2xl">✅</span>
+            </div>
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Mark as Fulfilled</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Confirm that you have successfully fulfilled this request. This action will notify the organization.
+                    </p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirmFulfill" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                        Yes, Mark as Fulfilled
+                    </button>
+                    <button onclick="closeFulfillmentModal()" class="mt-3 px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentRequestId = null;
+
+function claimRequest(requestId) {
+    const donorNote = document.getElementById('donor_note').value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/claim/${requestId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            donor_note: donorNote
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload page
+            alert('Request claimed successfully! You will receive a confirmation email.');
+            location.reload();
+        } else {
+            alert('Error claiming request: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error claiming request. Please try again.');
+    });
+}
+
+function unclaimRequest(requestId) {
+    if (!confirm('Are you sure you want to release this claim? The request will become available to other donors.')) {
+        return;
+    }
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/unclaim/${requestId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Claim released successfully.');
+            location.reload();
+        } else {
+            alert('Error releasing claim: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error releasing claim. Please try again.');
+    });
+}
+
+function fulfillRequest(requestId) {
+    currentRequestId = requestId;
+    document.getElementById('fulfillmentModal').classList.remove('hidden');
+}
+
+function closeFulfillmentModal() {
+    document.getElementById('fulfillmentModal').classList.add('hidden');
+    currentRequestId = null;
+}
+
+document.getElementById('confirmFulfill').addEventListener('click', function() {
+    if (!currentRequestId) return;
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/fulfill/${currentRequestId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Request marked as fulfilled successfully!');
+            location.reload();
+        } else {
+            alert('Error fulfilling request: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error fulfilling request. Please try again.');
+    })
+    .finally(() => {
+        closeFulfillmentModal();
+    });
+});
+
+// Close modal when clicking outside
+document.getElementById('fulfillmentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeFulfillmentModal();
+    }
+});
+</script>
+{% endblock %}

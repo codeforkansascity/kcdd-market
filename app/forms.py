@@ -58,12 +58,16 @@ class OrganizationProfileForm(forms.ModelForm):
         model = Organization
         fields = [
             'name', 'website', 'mission', 'email', 'phone',
-            'address', 'zipcode', 'ein', 'cause_areas', 'logo_emoji'
+            'address', 'zipcode', 'ein', 'cause_areas', 'logo', 'logo_emoji'
         ]
         widgets = {
             'mission': forms.Textarea(attrs={'rows': 4}),
             'address': forms.Textarea(attrs={'rows': 3}),
             'cause_areas': forms.CheckboxSelectMultiple,
+        }
+        help_texts = {
+            'logo': 'Upload your organization logo (PNG, JPG, GIF supported). Recommended size: 200x200px or larger.',
+            'logo_emoji': 'Choose an emoji to represent your organization when no logo is uploaded (e.g., 🏫, 🏥, 🎯, 💚)',
         }
 
     def __init__(self, *args, **kwargs):
@@ -72,10 +76,27 @@ class OrganizationProfileForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             if field_name == 'cause_areas':
                 field.widget.attrs['class'] = 'form-checkbox'
+            elif field_name == 'logo':
+                field.widget.attrs['class'] = 'form-input mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+                field.widget.attrs['accept'] = 'image/png,image/jpeg,image/gif'
             elif isinstance(field.widget, forms.Textarea):
                 field.widget.attrs['class'] = 'form-textarea mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
             else:
                 field.widget.attrs['class'] = 'form-input mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
+    
+    def clean_logo(self):
+        logo = self.cleaned_data.get('logo')
+        if logo:
+            # Check file size (limit to 5MB)
+            if logo.size > 5 * 1024 * 1024:
+                raise forms.ValidationError("Logo file size cannot exceed 5MB.")
+            
+            # Check file type
+            allowed_types = ['image/png', 'image/jpeg', 'image/gif']
+            if logo.content_type not in allowed_types:
+                raise forms.ValidationError("Logo must be a PNG, JPEG, or GIF image.")
+        
+        return logo
 
 
 class DonorProfileForm(forms.ModelForm):

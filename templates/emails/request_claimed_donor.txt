@@ -1,0 +1,44 @@
+Hello {{ donor.get_full_name|default:donor.username }},
+
+Thank you for claiming a technology request on the KC Digital Drive portal!
+
+REQUEST DETAILS:
+Organization: {{ organization.name }}
+Description: {{ request.description }}
+Amount: ${{ request.amount }}
+Urgency: {{ request.get_urgency_display }}
+ZIP Code: {{ request.zipcode }}
+
+{% if request.identity_categories.exists %}
+Communities Served:
+{% for category in request.identity_categories.all %}
+- {{ category.name }}
+{% endfor %}
+{% endif %}
+
+ORGANIZATION CONTACT:
+Name: {{ organization.name }}
+Email: {{ organization.email }}
+{% if organization.phone %}Phone: {{ organization.phone }}{% endif %}
+
+NEXT STEPS:
+1. Contact the organization directly to coordinate fulfillment
+2. Work together to determine the best way to meet their needs
+3. Once fulfilled, mark the request as complete in the portal
+
+{% if request.donor_note %}
+YOUR MESSAGE TO THE ORGANIZATION:
+{{ request.donor_note }}
+{% endif %}
+
+IMPORTANT REMINDERS:
+- Please follow through on your commitment to help this organization
+- If you cannot fulfill this request, please release your claim so others can help
+- Contact us if you have any questions or need assistance
+
+Manage your claimed requests: {{ portal_url }}/donor-dashboard/
+
+If you have any questions, contact us at support@kcdd.org.
+
+Best regards,
+KC Digital Drive Team

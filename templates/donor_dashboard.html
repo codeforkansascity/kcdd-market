@@ -76,7 +76,7 @@
                 </div>
                 <div class="text-center p-4 bg-blue-50 rounded col-span-2">
                     <div class="text-2xl font-bold text-blue-600">
-                        ${% if fulfilled_requests %}{{ fulfilled_requests|length|mul:100 }}{% else %}0{% endif %}
+                        ${{ total_given|floatformat:0 }}
                     </div>
                     <div class="text-sm text-gray-600">Total Given</div>
                 </div>
@@ -130,9 +130,14 @@
                         <p class="text-sm text-gray-600 mt-1">{{ request.description|truncatewords:15 }}</p>
                         <div class="flex justify-between items-center mt-3">
                             <span class="text-lg font-semibold text-green-600">${{ request.amount|floatformat:0 }}</span>
-                            <button onclick="fulfillRequest('{{ request.id }}')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">
-                                Mark Fulfilled
-                            </button>
+                            <div class="flex gap-2">
+                                <a href="{% url 'app:request_detail' request.id %}" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
+                                    View Details
+                                </a>
+                                <button onclick="fulfillRequest('{{ request.id }}')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition">
+                                    Mark Fulfilled
+                                </button>
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -160,7 +165,12 @@
                         <p class="text-sm text-gray-600 mt-1">{{ request.description|truncatewords:15 }}</p>
                         <div class="flex justify-between items-center mt-3">
                             <span class="text-lg font-semibold text-green-600">${{ request.amount|floatformat:0 }}</span>
-                            <span class="text-green-700 text-sm">✅ Fulfilled</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-green-700 text-sm">✅ Fulfilled</span>
+                                <a href="{% url 'app:request_detail' request.id %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                                    View Details
+                                </a>
+                            </div>
                         </div>
                         <p class="text-xs text-gray-500 mt-2">Fulfilled on {{ request.fulfilled_at|date:"M d, Y" }}</p>
                     </div>
