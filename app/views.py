@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q, Sum
@@ -665,3 +665,10 @@ def send_vetting_notification(user):
     # Mock implementation
     print(f"MOCK EMAIL: User {user.email} has been approved")
     return True
+
+
+def custom_logout(request):
+    """Custom logout view that ensures proper redirection to home page"""
+    logout(request)
+    messages.success(request, 'You have been successfully logged out.')
+    return redirect('app:home')
