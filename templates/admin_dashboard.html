@@ -162,7 +162,13 @@
                         <div class="border rounded-lg p-3">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
-                                    <div class="text-lg">{{ org.display_logo }}</div>
+                                    {% if org.logo %}
+                                        <img src="{{ org.logo.url }}" alt="{{ org.name }} logo" class="w-8 h-8 rounded object-cover">
+                                    {% else %}
+                                        <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                                            <span class="text-sm">{{ org.display_logo }}</span>
+                                        </div>
+                                    {% endif %}
                                     <div>
                                         <h4 class="font-medium text-sm">{{ org.name }}</h4>
                                         <p class="text-xs text-gray-600">{{ org.zipcode }}</p>

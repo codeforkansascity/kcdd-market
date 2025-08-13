@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Request - {{ request_obj.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <div class="flex items-center space-x-2 text-sm text-gray-600">
+            <a href="{% url 'app:cbo_dashboard' %}" class="hover:text-blue-600">Dashboard</a>
+            <span>/</span>
+            <span class="text-gray-900">Edit Request</span>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Edit Request</h1>
+                    <p class="text-gray-600 mt-1">Update your technology equipment request</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-green-600">
+                        ${{ request_obj.amount|floatformat:0 }}
+                    </div>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        🟢 Open
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Form -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Current Request Info -->
+                <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <h3 class="text-lg font-medium text-blue-900 mb-2">Current Request</h3>
+                    <div class="text-sm text-blue-800">
+                        <p><strong>Created:</strong> {{ request_obj.created_at|date:"M d, Y g:i A" }}</p>
+                        <p><strong>Cause Area:</strong> {{ request_obj.cause_area.name }}</p>
+                        <p><strong>ZIP Code:</strong> {{ request_obj.zipcode }}</p>
+                        {% if request_obj.identity_categories.exists %}
+                        <p><strong>Communities Served:</strong> 
+                            {% for category in request_obj.identity_categories.all %}
+                                {{ category.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    {% for field in form %}
+                        <div class="{% if field.name == 'description' %}md:col-span-2{% endif %}">
+                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ field.label }}
+                                {% if field.field.required %}
+                                    <span class="text-red-500">*</span>
+                                {% endif %}
+                            </label>
+                            
+                            {% if field.name == 'description' %}
+                                <div class="relative">
+                                    {{ field }}
+                                    <div class="absolute bottom-2 right-2 text-xs text-gray-400">
+                                        <span id="desc-count">{{ field.value|length|default:0 }}</span>/500
+                                    </div>
+                                </div>
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+                            
+                            {% if field.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                    <div class="flex space-x-3">
+                        <a href="{% url 'app:cbo_dashboard' %}" 
+                           class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition font-medium">
+                            Cancel
+                        </a>
+                        <a href="{% url 'app:request_detail' request_obj.id %}" 
+                           class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition font-medium">
+                            Preview
+                        </a>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="deleteRequest('{{ request_obj.id }}')" 
+                                class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition font-medium">
+                            🗑️ Delete Request
+                        </button>
+                        <button type="submit" 
+                                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium">
+                            💾 Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">✏️ Editing Guidelines</h3>
+            <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">What you can edit:</h4>
+                    <ul class="space-y-1 list-disc list-inside">
+                        <li>Request description and details</li>
+                        <li>Amount requested</li>
+                        <li>Urgency level</li>
+                        <li>Communities served</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-2">Important notes:</h4>
+                    <ul class="space-y-1 list-disc list-inside">
+                        <li>You can only edit open, unclaimed requests</li>
+                        <li>Changes are tracked in request history</li>
+                        <li>Donors will see the updated information</li>
+                        <li>Consider impact on potential donors</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <span class="text-2xl">🗑️</span>
+            </div>
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Request</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Are you sure you want to delete this request? This action cannot be undone and will remove the request from all listings.
+                    </p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirmDelete" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300">
+                        Yes, Delete Request
+                    </button>
+                    <button onclick="closeDeleteModal()" class="mt-3 px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentRequestId = null;
+
+// Character counter for description
+document.addEventListener('DOMContentLoaded', function() {
+    const descField = document.querySelector('textarea[name="description"]');
+    const counter = document.getElementById('desc-count');
+    
+    if (descField && counter) {
+        descField.addEventListener('input', function() {
+            counter.textContent = this.value.length;
+            if (this.value.length > 450) {
+                counter.className = 'text-red-500 font-medium';
+            } else {
+                counter.className = 'text-gray-400';
+            }
+        });
+    }
+});
+
+function deleteRequest(requestId) {
+    currentRequestId = requestId;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    currentRequestId = null;
+}
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+    if (!currentRequestId) return;
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/delete-request/${currentRequestId}/`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Request deleted successfully!');
+            window.location.href = '{% url "app:cbo_dashboard" %}';
+        } else {
+            alert('Error deleting request: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting request. Please try again.');
+    })
+    .finally(() => {
+        closeDeleteModal();
+    });
+});
+
+// Close modal when clicking outside
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+# Database files
+*.sqlite3
+db.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# Django media files (optional - depends on deployment strategy)
+# media/
+
+# Keep example files but ignore uploaded files
+media/donor_profiles/
+!media/donor_profiles/.gitkeep
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env

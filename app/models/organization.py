@@ -51,12 +51,22 @@ class Organization(models.Model):
     @property
     def is_vetted(self):
         return self.user.is_vetted
+    
+    @property
+    def profile_picture_display(self):
+        """Return profile picture URL if available, otherwise None"""
+        if self.profile_picture:
+            return self.profile_picture.url
+        return None
 
     @property
     def display_logo(self):
-        """Return logo URL or emoji fallback"""
-        if self.logo:
-            return self.logo.url
+        """Return emoji for text display (used in cards/lists)"""
+        return self.logo_emoji or "🏢"
+    
+    @property
+    def logo_display(self):
+        """Return emoji fallback for display consistency"""
         return self.logo_emoji or "🏢"
 
 
@@ -64,6 +74,11 @@ class DonorProfile(models.Model):
     """Donor profiles"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='donor_profile')
+    
+    # Profile Information
+    display_name = models.CharField(max_length=200, help_text="Public display name")
+    bio = models.TextField(blank=True, help_text="Brief bio or description")
+    profile_picture = models.ImageField(upload_to='donor_profiles/', blank=True, null=True, help_text="Profile picture")
     
     # Contact Information
     name = models.CharField(max_length=200, help_text="Individual or organization name")
@@ -102,3 +117,10 @@ class DonorProfile(models.Model):
     @property
     def is_vetted(self):
         return self.user.is_vetted
+    
+    @property
+    def profile_picture_display(self):
+        """Return profile picture URL if available, otherwise None"""
+        if self.profile_picture:
+            return self.profile_picture.url
+        return None
