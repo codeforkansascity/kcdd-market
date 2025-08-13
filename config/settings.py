@@ -115,4 +115,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Debug settings removed for cleaner development
 
 # Email Configuration
-from .email_settings import * 
+from .email_settings import *
+
+# Login/Logout URLs
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/profile/'
+LOGOUT_REDIRECT_URL = '/' 
