@@ -107,26 +107,22 @@ class RequestForm(forms.ModelForm):
     class Meta:
         model = Request
         fields = [
-            'title', 'description', 'amount', 'urgency', 'cause_areas',
-            'demographics_served', 'supporting_documents', 'impact_statement'
+            'description', 'amount', 'urgency', 'cause_area',
+            'zipcode', 'identity_categories'
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
-            'impact_statement': forms.Textarea(attrs={'rows': 3}),
-            'cause_areas': forms.CheckboxSelectMultiple,
-            'demographics_served': forms.CheckboxSelectMultiple,
+            'identity_categories': forms.CheckboxSelectMultiple,
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Add CSS classes
         for field_name, field in self.fields.items():
-            if field_name in ['cause_areas', 'demographics_served']:
+            if field_name == 'identity_categories':
                 field.widget.attrs['class'] = 'form-checkbox'
             elif isinstance(field.widget, forms.Textarea):
                 field.widget.attrs['class'] = 'form-textarea mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
-            elif isinstance(field.widget, forms.FileInput):
-                field.widget.attrs['class'] = 'form-file mt-1 block w-full text-sm text-gray-500'
             else:
                 field.widget.attrs['class'] = 'form-input mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'
 
