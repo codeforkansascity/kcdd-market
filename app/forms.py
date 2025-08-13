@@ -10,9 +10,10 @@ class UserRegistrationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
     user_type = forms.ChoiceField(
-        choices=[('donor', 'Donor'), ('cbo', 'Community-Based Organization')],
+        choices=[('cbo', 'Community-Based Organization'), ('donor', 'Donor')],
         required=True,
-        widget=forms.RadioSelect
+        widget=forms.RadioSelect,
+        initial='cbo'
     )
     phone = forms.CharField(max_length=20, required=False)
 

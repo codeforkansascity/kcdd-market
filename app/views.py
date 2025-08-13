@@ -116,11 +116,23 @@ def profile(request):
 @login_required
 def cbo_profile(request):
     """CBO profile and request management"""
-    # Will implement after migrations
+    if not request.user.is_cbo:
+        messages.error(request, 'Access denied.')
+        return redirect('app:home')
+    
+    # Get or create organization profile
+    try:
+        organization = request.user.organization
+    except Organization.DoesNotExist:
+        organization = None
+    
+    # Get user's requests
+    requests = Request.objects.filter(organization__user=request.user).order_by('-created_at') if organization else []
+    
     context = {
         'user': request.user,
-        'organization': None,  # request.user.organization
-        'requests': [],  # request.user.organization.requests.all()
+        'organization': organization,
+        'requests': requests,
     }
     return render(request, 'cbo_profile.html', context)
 
@@ -128,12 +140,25 @@ def cbo_profile(request):
 @login_required
 def donor_profile(request):
     """Donor profile and claimed requests"""
-    # Will implement after migrations
+    if not request.user.is_donor:
+        messages.error(request, 'Access denied.')
+        return redirect('app:home')
+    
+    # Get or create donor profile
+    try:
+        donor_profile = request.user.donor_profile
+    except DonorProfile.DoesNotExist:
+        donor_profile = None
+    
+    # Get user's claimed and fulfilled requests
+    claimed_requests = Request.objects.filter(donor=request.user, status='claimed').order_by('-claimed_at')
+    fulfilled_requests = Request.objects.filter(donor=request.user, status='fulfilled').order_by('-fulfilled_at')
+    
     context = {
         'user': request.user,
-        'donor_profile': None,  # request.user.donor_profile
-        'claimed_requests': [],  # request.user.claimed_requests.filter(status='claimed')
-        'fulfilled_requests': [],  # request.user.claimed_requests.filter(status='fulfilled')
+        'donor_profile': donor_profile,
+        'claimed_requests': claimed_requests,
+        'fulfilled_requests': fulfilled_requests,
     }
     return render(request, 'donor_profile.html', context)
 

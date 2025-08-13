@@ -22,7 +22,7 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('cbo/', views.cbo_profile, name='cbo_profile'),
     path('donor/', views.donor_profile, name='donor_profile'),
-    path('admin/', views.admin_dashboard, name='admin_dashboard'),
+    path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
     
     # AJAX endpoints
     path('api/claim/<uuid:request_id>/', views.claim_request, name='claim_request'),

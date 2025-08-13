@@ -33,7 +33,7 @@
                         </a>
                         {% if user.is_admin_user %}
                         <a href="{% url 'app:admin_dashboard' %}" class="text-gray-700 hover:text-blue-600 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-blue-600 font-semibold{% endif %}">
-                            Admin
+                            Dashboard
                         </a>
                         {% endif %}
                     {% endif %}
