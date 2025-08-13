@@ -135,14 +135,16 @@ class DonorProfileForm(forms.ModelForm):
     def clean_profile_picture(self):
         profile_picture = self.cleaned_data.get('profile_picture')
         if profile_picture:
-            # Check file size (limit to 5MB)
-            if profile_picture.size > 5 * 1024 * 1024:
-                raise forms.ValidationError("Profile picture file size cannot exceed 5MB.")
-            
-            # Check file type
-            allowed_types = ['image/png', 'image/jpeg', 'image/gif']
-            if profile_picture.content_type not in allowed_types:
-                raise forms.ValidationError("Profile picture must be a PNG, JPEG, or GIF image.")
+            # Only validate uploaded files, not existing files
+            if hasattr(profile_picture, 'content_type'):
+                # Check file size (limit to 5MB)
+                if profile_picture.size > 5 * 1024 * 1024:
+                    raise forms.ValidationError("Profile picture file size cannot exceed 5MB.")
+                
+                # Check file type
+                allowed_types = ['image/png', 'image/jpeg', 'image/gif']
+                if profile_picture.content_type not in allowed_types:
+                    raise forms.ValidationError("Profile picture must be a PNG, JPEG, or GIF image.")
         
         return profile_picture
 

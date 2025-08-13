@@ -36,11 +36,11 @@
             <nav class="flex space-x-8" aria-label="Tabs">
                 <button onclick="showTab('requests')" id="requests-tab" 
                         class="tab-button active py-4 px-6 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
-                    🎯 Most Requests Fulfilled
+                    🎯 By Requests Fulfilled
                 </button>
                 <button onclick="showTab('amount')" id="amount-tab"
                         class="tab-button py-4 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                    💰 Highest Donations
+                    💰 By Total Donations
                 </button>
             </nav>
         </div>
@@ -49,29 +49,33 @@
         <div class="p-6">
             <!-- Top Donors by Request Count -->
             <div id="requests-content" class="tab-content">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Top Donors by Requests Fulfilled</h2>
-                {% if top_donors_by_count %}
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">All Donors by Requests Fulfilled</h2>
+                {% if donors_by_count %}
                     <div class="space-y-4">
-                        {% for donor in top_donors_by_count %}
-                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        {% for donor in donors_by_count %}
+                        <div class="flex items-center justify-between p-4 {% if donor.fulfilled_count > 0 %}bg-gray-50 hover:bg-gray-100{% else %}bg-gray-25 hover:bg-gray-50 opacity-75{% endif %} rounded-lg transition-colors">
                             <div class="flex items-center space-x-4">
                                 <!-- Rank -->
                                 <div class="flex-shrink-0">
-                                    {% if forloop.counter == 1 %}
+                                    {% if donor.fulfilled_count > 0 and forloop.counter == 1 %}
                                         <div class="w-10 h-10 bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center font-bold text-lg">
                                             🥇
                                         </div>
-                                    {% elif forloop.counter == 2 %}
+                                    {% elif donor.fulfilled_count > 0 and forloop.counter == 2 %}
                                         <div class="w-10 h-10 bg-gray-300 text-gray-700 rounded-full flex items-center justify-center font-bold text-lg">
                                             🥈
                                         </div>
-                                    {% elif forloop.counter == 3 %}
+                                    {% elif donor.fulfilled_count > 0 and forloop.counter == 3 %}
                                         <div class="w-10 h-10 bg-orange-400 text-orange-900 rounded-full flex items-center justify-center font-bold text-lg">
                                             🥉
                                         </div>
-                                    {% else %}
+                                    {% elif donor.fulfilled_count > 0 %}
                                         <div class="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold">
                                             {{ forloop.counter }}
+                                        </div>
+                                    {% else %}
+                                        <div class="w-10 h-10 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center font-bold">
+                                            —
                                         </div>
                                     {% endif %}
                                 </div>
@@ -122,29 +126,33 @@
 
             <!-- Top Donors by Amount -->
             <div id="amount-content" class="tab-content hidden">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Top Donors by Total Amount</h2>
-                {% if top_donors_by_amount %}
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">All Donors by Total Amount</h2>
+                {% if donors_by_amount %}
                     <div class="space-y-4">
-                        {% for donor in top_donors_by_amount %}
-                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        {% for donor in donors_by_amount %}
+                        <div class="flex items-center justify-between p-4 {% if donor.total_donated > 0 %}bg-gray-50 hover:bg-gray-100{% else %}bg-gray-25 hover:bg-gray-50 opacity-75{% endif %} rounded-lg transition-colors">
                             <div class="flex items-center space-x-4">
                                 <!-- Rank -->
                                 <div class="flex-shrink-0">
-                                    {% if forloop.counter == 1 %}
+                                    {% if donor.total_donated > 0 and forloop.counter == 1 %}
                                         <div class="w-10 h-10 bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center font-bold text-lg">
                                             🥇
                                         </div>
-                                    {% elif forloop.counter == 2 %}
+                                    {% elif donor.total_donated > 0 and forloop.counter == 2 %}
                                         <div class="w-10 h-10 bg-gray-300 text-gray-700 rounded-full flex items-center justify-center font-bold text-lg">
                                             🥈
                                         </div>
-                                    {% elif forloop.counter == 3 %}
+                                    {% elif donor.total_donated > 0 and forloop.counter == 3 %}
                                         <div class="w-10 h-10 bg-orange-400 text-orange-900 rounded-full flex items-center justify-center font-bold text-lg">
                                             🥉
                                         </div>
-                                    {% else %}
+                                    {% elif donor.total_donated > 0 %}
                                         <div class="w-10 h-10 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold">
                                             {{ forloop.counter }}
+                                        </div>
+                                    {% else %}
+                                        <div class="w-10 h-10 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center font-bold">
+                                            —
                                         </div>
                                     {% endif %}
                                 </div>
