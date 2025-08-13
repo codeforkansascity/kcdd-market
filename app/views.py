@@ -547,6 +547,89 @@ def create_request(request):
 
 
 @login_required
+def edit_request(request, request_id):
+    """Edit a request (CBOs only, open requests only)"""
+    from django.shortcuts import get_object_or_404
+    from .models import Request
+    
+    if request.user.user_type != 'cbo':
+        messages.error(request, 'Only Community-Based Organizations can edit requests.')
+        return redirect('app:home')
+    
+    # Get the request and verify ownership
+    request_obj = get_object_or_404(Request, id=request_id, organization__user=request.user)
+    
+    # Only allow editing of open requests
+    if request_obj.status != 'open':
+        messages.error(request, 'You can only edit open requests that have not been claimed.')
+        return redirect('app:cbo_dashboard')
+    
+    if request.method == 'POST':
+        form = RequestForm(request.POST, instance=request_obj)
+        if form.is_valid():
+            updated_request = form.save()
+            
+            # Create history record
+            RequestHistory.objects.create(
+                request=updated_request,
+                user=request.user,
+                action='updated',
+                description=f"Request updated by {request.user.get_full_name() or request.user.username}"
+            )
+            
+            messages.success(request, 'Request updated successfully!')
+            return redirect('app:cbo_dashboard')
+    else:
+        form = RequestForm(instance=request_obj)
+    
+    context = {
+        'form': form,
+        'request_obj': request_obj,
+        'is_edit': True,
+    }
+    return render(request, 'edit_request.html', context)
+
+
+@login_required  
+def delete_request(request, request_id):
+    """Delete a request (CBOs only, open requests only)"""
+    from django.shortcuts import get_object_or_404
+    from django.views.decorators.http import require_http_methods
+    from .models import Request
+    
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    if request.user.user_type != 'cbo':
+        return JsonResponse({'error': 'Only Community-Based Organizations can delete requests'}, status=403)
+    
+    try:
+        request_obj = get_object_or_404(Request, id=request_id, organization__user=request.user)
+        
+        # Only allow deletion of open requests
+        if request_obj.status != 'open':
+            return JsonResponse({'error': 'You can only delete open requests that have not been claimed'}, status=400)
+        
+        # Create history record before deletion
+        RequestHistory.objects.create(
+            request=request_obj,
+            user=request.user,
+            action='updated',
+            description=f"Request deleted by {request.user.get_full_name() or request.user.username}"
+        )
+        
+        request_obj.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Request deleted successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to delete request: {str(e)}'}, status=500)
+
+
+@login_required
 def manage_requests(request):
     """Admin view for managing all requests"""
     if not request.user.is_admin_user:

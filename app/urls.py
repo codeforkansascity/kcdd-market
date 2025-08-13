@@ -28,6 +28,7 @@ urlpatterns = [
     
     # Request management
     path('create-request/', views.create_request, name='create_request'),
+    path('edit-request/<uuid:request_id>/', views.edit_request, name='edit_request'),
     path('manage-requests/', views.manage_requests, name='manage_requests'),
     path('admin-create-request/', views.admin_create_request, name='admin_create_request'),
     
@@ -35,6 +36,7 @@ urlpatterns = [
     path('api/claim/<uuid:request_id>/', views.claim_request, name='claim_request'),
     path('api/unclaim/<uuid:request_id>/', views.unclaim_request, name='unclaim_request'),
     path('api/fulfill/<uuid:request_id>/', views.fulfill_request, name='fulfill_request'),
+    path('api/delete-request/<uuid:request_id>/', views.delete_request, name='delete_request'),
     
     # Future URL modules (when implemented)
     # path('organizations/', include('app.urls.organizations')),
