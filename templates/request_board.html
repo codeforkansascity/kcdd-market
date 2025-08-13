@@ -243,7 +243,7 @@
                                     </svg>
                                 </a>
                                 
-                                {% if request.is_open and user.is_authenticated and user.is_donor %}
+                                {% if request.is_open and user.is_authenticated and user.user_type == 'donor' and user.is_vetted %}
                                 <button onclick="claimRequest('{{ request.id }}')" 
                                         class="group bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-2">
                                     <svg class="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,7 +312,7 @@
                                        class="text-blue-600 hover:text-blue-800 font-semibold text-sm">
                                         View Details →
                                     </a>
-                                    {% if request.is_open and user.is_authenticated and user.is_donor %}
+                                    {% if request.is_open and user.is_authenticated and user.user_type == 'donor' and user.is_vetted %}
                                     <button onclick="claimRequest('{{ request.id }}')" 
                                             class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
                                         Claim Request
