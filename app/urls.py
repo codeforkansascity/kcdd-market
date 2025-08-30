@@ -38,6 +38,8 @@ urlpatterns = [
     path('api/unclaim/<uuid:request_id>/', views.unclaim_request, name='unclaim_request'),
     path('api/fulfill/<uuid:request_id>/', views.fulfill_request, name='fulfill_request'),
     path('api/delete-request/<uuid:request_id>/', views.delete_request, name='delete_request'),
+    path('api/deny-request/<uuid:request_id>/', views.deny_request, name='deny_request'),
+    path('api/approve-request/<uuid:request_id>/', views.approve_request, name='approve_request'),
     
     # Future URL modules (when implemented)
     # path('organizations/', include('app.urls.organizations')),

@@ -1,0 +1,22 @@
+Request Approved!
+
+Dear {{ organization.name }} Team,
+
+Great news! Your funding request has been approved and is now visible to potential donors on our platform.
+
+Request Details:
+Amount Requested: ${{ request.amount|floatformat:0 }}
+Description: {{ request.description|truncatewords:30 }}
+Submitted: {{ request.created_at|date:"M d, Y" }}
+Status: Approved and Live
+
+Your request is now available for donors to view and potentially claim. We'll notify you immediately when a donor expresses interest in fulfilling your request.
+
+In the meantime, you can:
+- Monitor your request status from your dashboard
+- Update your request details if needed
+- View other requests from your organization
+
+View Dashboard: {{ portal_url }}/cbo-dashboard/
+
+Thank you for your partnership with KCDD. We're excited to help connect you with donors who can support your mission.

@@ -12,7 +12,7 @@ import json
 
 from .models import User, Organization, DonorProfile, Request, CauseArea, IdentityCategory, RequestHistory
 from .forms import (
-    UserRegistrationForm, OrganizationProfileForm, DonorProfileForm, 
+    UserRegistrationForm, CBORegistrationForm, DonorRegistrationForm, OrganizationProfileForm, DonorProfileForm, 
     RequestForm, ClaimRequestForm, FulfillmentForm, RequestSearchForm
 )
 from .services import send_cbo_approval_email, send_welcome_email, send_request_claimed_email
@@ -20,12 +20,12 @@ from .services import send_cbo_approval_email, send_welcome_email, send_request_
 
 def home(request):
     """Public homepage with request board"""
-    # Get recent open requests for preview
-    recent_requests = Request.objects.filter(status='open').order_by('-created_at')[:3]
+    # Get recent open requests for preview (exclude denied requests)
+    recent_requests = Request.objects.filter(status='open').exclude(status='denied').order_by('-created_at')[:3]
     
-    # Basic stats
+    # Basic stats (exclude denied requests)
     stats = {
-        'open_requests': Request.objects.filter(status='open').count(),
+        'open_requests': Request.objects.filter(status='open').exclude(status='denied').count(),
         'fulfilled_requests': Request.objects.filter(status='fulfilled').count(),
         'total_cbos': Organization.objects.filter(user__is_vetted=True).count(),
         'total_impact': Request.objects.filter(status='fulfilled').aggregate(
@@ -44,8 +44,8 @@ def request_board(request):
     """Public request board with search/filter"""
     form = RequestSearchForm(request.GET)
     
-    # Base queryset
-    requests_queryset = Request.objects.all()
+    # Base queryset (exclude denied requests)
+    requests_queryset = Request.objects.exclude(status='denied')
     
     if form.is_valid():
         # Apply filters
@@ -277,6 +277,7 @@ def admin_dashboard(request):
     open_requests = Request.objects.filter(status='open').count()
     claimed_requests = Request.objects.filter(status='claimed').count()
     fulfilled_requests = Request.objects.filter(status='fulfilled').count()
+    denied_requests = Request.objects.filter(status='denied').count()
     pending_cbos = User.objects.filter(user_type='cbo', is_vetted=False).count()
     total_impact = Request.objects.filter(status='fulfilled').aggregate(total=Sum('amount'))['total'] or 0
     
@@ -291,6 +292,7 @@ def admin_dashboard(request):
         'open_requests': open_requests,
         'claimed_requests': claimed_requests,
         'fulfilled_requests': fulfilled_requests,
+        'denied_requests': denied_requests,
         'pending_cbos': pending_cbos,
         'total_impact': total_impact,
         'recent_requests': recent_requests,
@@ -302,9 +304,19 @@ def admin_dashboard(request):
 
 
 def register(request):
-    """User registration"""
+    """User registration with comprehensive profile creation"""
+    user_type = request.GET.get('type', 'cbo')  # Default to CBO
+    
     if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
+        # Determine which form to use based on user type
+        if user_type == 'cbo':
+            form = CBORegistrationForm(request.POST, request.FILES)
+        elif user_type == 'donor':
+            form = DonorRegistrationForm(request.POST, request.FILES)
+        else:
+            # Fallback to original form for backward compatibility
+            form = UserRegistrationForm(request.POST)
+        
         if form.is_valid():
             user = form.save()
             
@@ -317,16 +329,23 @@ def register(request):
                 messages.success(request, 'Welcome! Your donor account is ready to use.')
                 return redirect('app:profile')
             else:
-                # CBOs need to complete their profile
+                # CBOs need approval
                 messages.success(request, 
-                    'Account created! Please complete your organization profile. '
-                    'KCDD will review and approve your account.')
+                    'Account created! Your organization profile has been submitted. '
+                    'KCDD will review and approve your account. You will receive an email notification once approved.')
                 return redirect('app:login')
     else:
-        form = UserRegistrationForm()
+        # Create appropriate form based on user type
+        if user_type == 'cbo':
+            form = CBORegistrationForm()
+        elif user_type == 'donor':
+            form = DonorRegistrationForm()
+        else:
+            form = UserRegistrationForm()
     
     context = {
         'form': form,
+        'user_type': user_type,
     }
     return render(request, 'registration/register.html', context)
 
@@ -638,9 +657,10 @@ def edit_request(request, request_id):
     return render(request, 'edit_request.html', context)
 
 
-@login_required  
+@require_POST
+@login_required
 def delete_request(request, request_id):
-    """Delete a request (CBOs only, open requests only)"""
+    """Delete a request (for admins and CBO owners)"""
     from django.shortcuts import get_object_or_404
     from django.views.decorators.http import require_http_methods
     from .models import Request
@@ -675,6 +695,72 @@ def delete_request(request, request_id):
         
     except Exception as e:
         return JsonResponse({'error': f'Failed to delete request: {str(e)}'}, status=500)
+
+
+@require_POST
+@login_required
+def deny_request(request, request_id):
+    """Deny a request with reason (for admins)"""
+    from django.shortcuts import get_object_or_404
+    from .models import Request
+    
+    if not request.user.is_staff:
+        messages.error(request, 'You do not have permission to deny requests')
+        return redirect('app:request_detail', request_id=request_id)
+    
+    request_obj = get_object_or_404(Request, id=request_id)
+    
+    if request.method == 'POST':
+        reason = request.POST.get('denial_reason', '').strip()
+        
+        if not reason:
+            messages.error(request, 'Please provide a reason for denial')
+            return redirect('app:request_detail', request_id=request_id)
+        
+        # Update request status
+        request_obj.status = 'denied'
+        request_obj.denial_reason = reason
+        request_obj.denied_at = timezone.now()
+        request_obj.save()
+        
+        # Send notification
+        from .services import send_request_denial_notification
+        send_request_denial_notification(request_obj, reason)
+        
+        messages.success(request, f'Request from {request_obj.organization.name} has been denied')
+        return redirect('app:admin_dashboard')
+    
+    return redirect('app:request_detail', request_id=request_id)
+
+
+@require_POST
+@login_required
+def approve_request(request, request_id):
+    """Approve a denied request (for admins)"""
+    from django.shortcuts import get_object_or_404
+    from .models import Request
+    
+    if not request.user.is_staff:
+        messages.error(request, 'You do not have permission to approve requests')
+        return redirect('app:request_detail', request_id=request_id)
+    
+    request_obj = get_object_or_404(Request, id=request_id)
+    
+    if request.method == 'POST':
+        # Update request status
+        request_obj.status = 'open'
+        request_obj.denial_reason = ''  # Clear denial reason
+        request_obj.denied_at = None
+        request_obj.save()
+        
+        # Send notification
+        from .services import send_request_approval_notification
+        send_request_approval_notification(request_obj)
+        
+        messages.success(request, f'Request from {request_obj.organization.name} has been approved')
+        return redirect('app:admin_dashboard')
+    
+    return redirect('app:request_detail', request_id=request_id)
 
 
 @login_required

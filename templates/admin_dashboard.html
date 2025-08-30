@@ -46,10 +46,33 @@
         <div class="bg-white rounded-lg shadow-sm border p-6">
             <div class="flex items-center justify-between">
                 <div>
+                    <p class="text-gray-600 text-sm font-medium">Denied</p>
+                    <p class="text-2xl font-bold text-red-600">{{ denied_requests }}</p>
+                </div>
+                <div class="text-red-500 text-2xl">❌</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Impact Stats -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <div class="flex items-center justify-between">
+                <div>
                     <p class="text-gray-600 text-sm font-medium">Total Impact</p>
                     <p class="text-2xl font-bold text-purple-600">${{ total_impact|floatformat:0 }}</p>
                 </div>
                 <div class="text-purple-500 text-2xl">💰</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-medium">Claimed Requests</p>
+                    <p class="text-2xl font-bold text-yellow-600">{{ claimed_requests }}</p>
+                </div>
+                <div class="text-yellow-500 text-2xl">🤝</div>
             </div>
         </div>
     </div>

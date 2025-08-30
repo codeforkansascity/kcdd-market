@@ -18,14 +18,14 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
 
 # Create directory for static files
 RUN mkdir -p staticfiles
-
 
 # Run the Django application
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"] 

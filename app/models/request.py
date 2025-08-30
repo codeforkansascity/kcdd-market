@@ -12,6 +12,7 @@ class Request(models.Model):
         ('open', 'Open'),
         ('claimed', 'Claimed'),
         ('fulfilled', 'Fulfilled'),
+        ('denied', 'Denied'),
     ]
     
     URGENCY_CHOICES = [
@@ -40,18 +41,54 @@ class Request(models.Model):
     # Geographic Information
     zipcode = models.CharField(max_length=10, help_text="ZIP code where assistance is needed")
     
+    # Challenge Categories and Program Regions
+    challenge_categories = models.ManyToManyField('app.ChallengeCategory', blank=True, help_text="How might you categorize the challenge(s) faced by those you serve? (Check all that apply)")
+    
+    PROGRAM_REGION_CHOICES = [
+        ('all_kc_metro', 'All KC Metro'),
+        ('kc_metro_mo', 'KC Metro - MO Only'),
+        ('kc_metro_ks', 'KC Metro - KS Only'),
+    ]
+    
+    COUNTY_CHOICES = [
+        ('cass_mo', 'Cass (MO)'),
+        ('clay_mo', 'Clay (MO)'),
+        ('jackson_mo', 'Jackson (MO)'),
+        ('lafayette_mo', 'Lafayette (MO)'),
+        ('platte_mo', 'Platte (MO)'),
+        ('ray_mo', 'Ray (MO)'),
+        ('johnson_ks', 'Johnson (KS)'),
+        ('leavenworth_ks', 'Leavenworth (KS)'),
+        ('wyandotte_ks', 'Wyandotte (KS)'),
+    ]
+    
+    program_region_metro = models.CharField(
+        max_length=20, 
+        choices=PROGRAM_REGION_CHOICES, 
+        blank=True, 
+        help_text="Program / Services Region (Metro)"
+    )
+    program_region_county = models.CharField(
+        max_length=20, 
+        choices=COUNTY_CHOICES, 
+        blank=True, 
+        help_text="Program / Services Region (County)"
+    )
+    
     # Identity Categories (Many-to-Many)
     identity_categories = models.ManyToManyField('app.IdentityCategory', blank=True, help_text="Recipient identity tags")
     
     # Status and Workflow
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
     donor_note = models.TextField(blank=True, help_text="Note from donor about fulfillment plan")
+    denial_reason = models.TextField(blank=True, help_text="Reason for denial (if request was denied)")
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     claimed_at = models.DateTimeField(null=True, blank=True)
     fulfilled_at = models.DateTimeField(null=True, blank=True)
+    denied_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -65,6 +102,8 @@ class Request(models.Model):
             self.claimed_at = timezone.now()
         elif self.status == 'fulfilled' and not self.fulfilled_at:
             self.fulfilled_at = timezone.now()
+        elif self.status == 'denied' and not self.denied_at:
+            self.denied_at = timezone.now()
         super().save(*args, **kwargs)
 
     @property
@@ -78,6 +117,10 @@ class Request(models.Model):
     @property
     def is_fulfilled(self):
         return self.status == 'fulfilled'
+    
+    @property
+    def is_denied(self):
+        return self.status == 'denied'
 
     @property
     def urgency_badge_class(self):
@@ -88,6 +131,22 @@ class Request(models.Model):
             'high': 'bg-red-100 text-red-700',
         }
         return badges.get(self.urgency, 'bg-gray-100 text-gray-700')
+
+
+class ChallengeCategory(models.Model):
+    """Categories for challenges faced by those served by CBOs"""
+    
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, help_text="Description of this challenge category")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = "Challenge categories"
+    
+    def __str__(self):
+        return self.name
 
 
 class RequestHistory(models.Model):
@@ -151,3 +210,30 @@ class FulfillmentRecord(models.Model):
 
     def __str__(self):
         return f"Fulfillment for {self.request}"
+
+
+class RequestNotification(models.Model):
+    """Notifications for request status changes and actions"""
+    
+    NOTIFICATION_TYPES = [
+        ('denied', 'Request Denied'),
+        ('approved', 'Request Approved'),
+        ('claimed', 'Request Claimed'),
+        ('fulfilled', 'Request Fulfilled'),
+        ('edited', 'Request Edited'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='request_notifications')
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.get_notification_type_display()} - {self.recipient.username}"

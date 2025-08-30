@@ -225,3 +225,89 @@ def send_admin_notification(subject: str, message: str, admin_emails: Optional[L
         template_name="admin_notification",
         context=context
     )
+
+
+def send_request_denial_email(request_obj, reason=""):
+    """Send denial notification email to CBO"""
+    context = {
+        'request': request_obj,
+        'organization': request_obj.organization,
+        'reason': reason,
+        'portal_url': getattr(settings, 'SITE_URL', 'http://localhost:8000'),
+    }
+    
+    return email_service.send_email(
+        to_emails=[request_obj.organization.email],
+        subject=f"Request Denied - ${request_obj.amount}",
+        template_name="request_denied",
+        context=context
+    )
+
+
+def send_request_approval_email(request_obj):
+    """Send approval notification email to CBO"""
+    context = {
+        'request': request_obj,
+        'organization': request_obj.organization,
+        'portal_url': getattr(settings, 'SITE_URL', 'http://localhost:8000'),
+    }
+    
+    return email_service.send_email(
+        to_emails=[request_obj.organization.email],
+        subject=f"Request Approved - ${request_obj.amount}",
+        template_name="request_approved",
+        context=context
+    )
+
+
+def create_request_notification(request_obj, notification_type, title, message, recipient):
+    """Create a notification record for a request status change"""
+    from .models import RequestNotification
+    
+    try:
+        notification = RequestNotification.objects.create(
+            request=request_obj,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            recipient=recipient
+        )
+        logger.info(f"Created notification: {notification}")
+        return notification
+    except Exception as e:
+        logger.error(f"Failed to create notification: {str(e)}")
+        return None
+
+
+def send_request_denial_notification(request_obj, reason=""):
+    """Send denial notification to CBO (both email and in-app notification)"""
+    # Create in-app notification
+    notification = create_request_notification(
+        request_obj=request_obj,
+        notification_type='denied',
+        title=f"Request Denied - ${request_obj.amount}",
+        message=f"Your request for ${request_obj.amount} has been denied. Reason: {reason}",
+        recipient=request_obj.organization.user
+    )
+    
+    # Send email notification
+    email_sent = send_request_denial_email(request_obj, reason)
+    
+    return notification, email_sent
+
+
+def send_request_approval_notification(request_obj):
+    """Send approval notification to CBO (both email and in-app notification)"""
+    # Create in-app notification
+    notification = create_request_notification(
+        request_obj=request_obj,
+        notification_type='approved',
+        title=f"Request Approved - ${request_obj.amount}",
+        message=f"Your request for ${request_obj.amount} has been approved and is now visible to donors.",
+        recipient=request_obj.organization.user
+    )
+    
+    # Send email notification
+    email_sent = send_request_approval_email(request_obj)
+    
+    return notification, email_sent

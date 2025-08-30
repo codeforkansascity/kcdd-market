@@ -1,0 +1,23 @@
+Request Denied
+
+Dear {{ organization.name }} Team,
+
+We regret to inform you that your funding request has been denied after review by our team.
+
+Request Details:
+Amount Requested: ${{ request.amount|floatformat:0 }}
+Description: {{ request.description|truncatewords:30 }}
+Submitted: {{ request.created_at|date:"M d, Y" }}
+
+{% if reason %}
+Reason for Denial:
+{{ reason }}
+{% endif %}
+
+If you have questions about this decision or would like to discuss how to improve your request for future consideration, please don't hesitate to reach out to our team.
+
+You can also submit a new request with the suggested improvements.
+
+Submit New Request: {{ portal_url }}/create-request/
+
+Thank you for your understanding and continued partnership with KCDD.

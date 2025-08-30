@@ -3,7 +3,7 @@ Django management command to create sample data
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from app.models import CauseArea, IdentityCategory, Organization, DonorProfile, Request
+from app.models import CauseArea, IdentityCategory, Organization, DonorProfile, Request, ChallengeCategory
 
 User = get_user_model()
 
@@ -76,6 +76,27 @@ class Command(BaseCommand):
             )
             if created:
                 self.stdout.write(f'  Created identity category: {identity_category.name}')
+
+        # Create Challenge Categories
+        challenge_categories = [
+            'Housing Insecure',
+            'Transportation Insecure',
+            'Low Income',
+            'Unemployment/Underemployment',
+            'Food Insecure',
+            'English Language Learner',
+            'Low Literacy',
+            'Mental/Physical Health Issues',
+            'Substance Use Issues',
+            'Immigrants/Refugees',
+        ]
+
+        for challenge_name in challenge_categories:
+            challenge_category, created = ChallengeCategory.objects.get_or_create(
+                name=challenge_name
+            )
+            if created:
+                self.stdout.write(f'  Created challenge category: {challenge_category.name}')
 
         # Create sample CBO users and organizations
         education_cause = CauseArea.objects.get(name='Education')
@@ -224,6 +245,11 @@ class Command(BaseCommand):
         tech_for_all_org = Organization.objects.get(name='Tech for All Community Center')
         learning_hub_org = Organization.objects.get(name='Learning Hub Academy')
 
+        # Get some challenge categories for the sample requests
+        housing_insecure = ChallengeCategory.objects.get(name='Housing Insecure')
+        low_income = ChallengeCategory.objects.get(name='Low Income')
+        food_insecure = ChallengeCategory.objects.get(name='Food Insecure')
+
         sample_requests = [
             {
                 'organization': tech_for_all_org,
@@ -234,6 +260,9 @@ class Command(BaseCommand):
                 'cause_area': education_cause,
                 'status': 'open',
                 'identity_categories': [youth_category, low_income_category],
+                'challenge_categories': [low_income, food_insecure],
+                'program_region_metro': 'all_kc_metro',
+                'program_region_county': 'jackson_mo',
             },
             {
                 'organization': learning_hub_org,
@@ -244,6 +273,9 @@ class Command(BaseCommand):
                 'cause_area': education_cause,
                 'status': 'open',
                 'identity_categories': [youth_category, students_category],
+                'challenge_categories': [low_income, food_insecure],
+                'program_region_metro': 'all_kc_metro',
+                'program_region_county': 'johnson_ks',
             },
             {
                 'organization': tech_for_all_org,
@@ -254,11 +286,15 @@ class Command(BaseCommand):
                 'cause_area': healthcare_cause,
                 'status': 'claimed',
                 'identity_categories': [low_income_category],
+                'challenge_categories': [housing_insecure],
+                'program_region_metro': 'kc_metro_mo',
+                'program_region_county': 'clay_mo',
             },
         ]
 
         for req_data in sample_requests:
             identity_categories = req_data.pop('identity_categories')
+            challenge_categories = req_data.pop('challenge_categories')
             request_obj, created = Request.objects.get_or_create(
                 organization=req_data['organization'],
                 description=req_data['description'],
@@ -266,6 +302,7 @@ class Command(BaseCommand):
             )
             if created:
                 request_obj.identity_categories.set(identity_categories)
+                request_obj.challenge_categories.set(challenge_categories)
                 self.stdout.write(f'  Created request: {request_obj.description[:50]}...')
 
         self.stdout.write(

@@ -1,6 +1,6 @@
 from .user import User, CauseArea, IdentityCategory
 from .organization import Organization, DonorProfile
-from .request import Request, RequestHistory, FulfillmentRecord
+from .request import Request, RequestHistory, FulfillmentRecord, ChallengeCategory, RequestNotification
 
 __all__ = [
     'User',
@@ -11,4 +11,6 @@ __all__ = [
     'Request',
     'RequestHistory',
     'FulfillmentRecord',
+    'ChallengeCategory',
+    'RequestNotification',
 ]

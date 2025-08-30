@@ -3,11 +3,28 @@
 {% block title %}Register - KCDD Matchmaking Portal{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-2xl">
+<div class="container mx-auto px-4 py-8 max-w-4xl">
     <div class="bg-white rounded-lg shadow-lg p-8">
         <h1 class="text-2xl font-bold mb-6 text-center">Create Your Account</h1>
         
-        <form method="post" class="space-y-6">
+        <!-- User Type Selection -->
+        <div class="mb-8">
+            <label class="block text-sm font-medium text-gray-700 mb-4">I am a:</label>
+            <div class="flex space-x-4">
+                <a href="?type=cbo" class="flex-1 p-4 border-2 rounded-lg text-center transition {% if user_type == 'cbo' %}border-blue-500 bg-blue-50 text-blue-700{% else %}border-gray-300 hover:border-gray-400{% endif %}">
+                    <div class="text-2xl mb-2">🏢</div>
+                    <div class="font-semibold">Community-Based Organization</div>
+                    <div class="text-sm text-gray-600 mt-1">Register your organization to post requests</div>
+                </a>
+                <a href="?type=donor" class="flex-1 p-4 border-2 rounded-lg text-center transition {% if user_type == 'donor' %}border-blue-500 bg-blue-50 text-blue-700{% else %}border-gray-300 hover:border-gray-400{% endif %}">
+                    <div class="text-2xl mb-2">💝</div>
+                    <div class="font-semibold">Donor</div>
+                    <div class="text-sm text-gray-600 mt-1">Register to support community organizations</div>
+                </a>
+            </div>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
@@ -16,106 +33,369 @@
                 </div>
             {% endif %}
             
-            <!-- User Type Selection -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">I am a:</label>
-                <div class="space-y-2">
-                    {% for choice in form.user_type %}
-                        <div class="flex items-center">
-                            {{ choice.tag }}
-                            <label for="{{ choice.id_for_label }}" class="ml-2 text-sm text-gray-700">
-                                {{ choice.choice_label }}
-                            </label>
-                        </div>
-                    {% endfor %}
+            <!-- Account Information Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-lg font-semibold mb-4 text-gray-900">Account Information</h2>
+                
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            First Name *
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Last Name *
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
-                {% if form.user_type.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.user_type.errors.0 }}</p>
-                {% endif %}
-            </div>
-            
-            <!-- Basic Information -->
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        First Name *
+                
+                <div class="mt-4">
+                    <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Username *
                     </label>
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
                     {% endif %}
                 </div>
                 
-                <div>
-                    <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Last Name *
+                <div class="mt-4">
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Email Address *
                     </label>
-                    {{ form.last_name }}
-                    {% if form.last_name.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div>
-                <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Username *
-                </label>
-                {{ form.username }}
-                {% if form.username.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
-                {% endif %}
-            </div>
-            
-            <div>
-                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Email Address *
-                </label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                {% endif %}
-            </div>
-            
-            <div>
-                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Phone Number
-                </label>
-                {{ form.phone }}
-                {% if form.phone.errors %}
-                    <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
-                {% endif %}
-            </div>
-            
-            <!-- Password Fields -->
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Password *
-                    </label>
-                    {{ form.password1 }}
-                    {% if form.password1.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
                     {% endif %}
                 </div>
                 
-                <div>
-                    <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Confirm Password *
+                <div class="mt-4">
+                    <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Phone Number
                     </label>
-                    {{ form.password2 }}
-                    {% if form.password2.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Password Fields -->
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Password *
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Confirm Password *
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CBO Profile Section -->
+            {% if user_type == 'cbo' %}
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-lg font-semibold mb-4 text-gray-900">Organization Information</h2>
+                
+                <div class="mt-4">
+                    <label for="{{ form.org_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Organization Name *
+                    </label>
+                    {{ form.org_name }}
+                    {% if form.org_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.org_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="{{ form.org_website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Organization Website
+                        </label>
+                        {{ form.org_website }}
+                        {% if form.org_website.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.org_website.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.org_ein.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            EIN (Tax ID)
+                        </label>
+                        {{ form.org_ein }}
+                        {% if form.org_ein.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.org_ein.help_text }}</p>
+                        {% endif %}
+                        {% if form.org_ein.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.org_ein.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.org_mission.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Organization Mission/Description *
+                    </label>
+                    {{ form.org_mission }}
+                    {% if form.org_mission.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.org_mission.help_text }}</p>
+                    {% endif %}
+                    {% if form.org_mission.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.org_mission.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="{{ form.org_email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Organization Email *
+                        </label>
+                        {{ form.org_email }}
+                        {% if form.org_email.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.org_email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.org_phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Organization Phone
+                        </label>
+                        {{ form.org_phone }}
+                        {% if form.org_phone.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.org_phone.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.org_address.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Organization Address
+                    </label>
+                    {{ form.org_address }}
+                    {% if form.org_address.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.org_address.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.org_zipcode.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Organization ZIP Code *
+                    </label>
+                    {{ form.org_zipcode }}
+                    {% if form.org_zipcode.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.org_zipcode.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cause Areas</label>
+                    <div class="grid md:grid-cols-2 gap-2">
+                        {% for choice in form.org_cause_areas %}
+                            <div class="flex items-center">
+                                {{ choice.tag }}
+                                <label for="{{ choice.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.org_cause_areas.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.org_cause_areas.help_text }}</p>
+                    {% endif %}
+                    {% if form.org_cause_areas.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.org_cause_areas.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="{{ form.org_logo.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Organization Logo
+                        </label>
+                        {{ form.org_logo }}
+                        {% if form.org_logo.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.org_logo.help_text }}</p>
+                        {% endif %}
+                        {% if form.org_logo.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.org_logo.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.org_logo_emoji.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Organization Emoji
+                        </label>
+                        {{ form.org_logo_emoji }}
+                        {% if form.org_logo_emoji.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.org_logo_emoji.help_text }}</p>
+                        {% endif %}
+                        {% if form.org_logo_emoji.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.org_logo_emoji.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Donor Profile Section -->
+            {% if user_type == 'donor' %}
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-lg font-semibold mb-4 text-gray-900">Donor Profile</h2>
+                
+                <div class="mt-4">
+                    <label for="{{ form.donor_display_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Display Name *
+                    </label>
+                    {{ form.donor_display_name }}
+                    {% if form.donor_display_name.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.donor_display_name.help_text }}</p>
+                    {% endif %}
+                    {% if form.donor_display_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.donor_display_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.donor_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Full Name *
+                    </label>
+                    {{ form.donor_name }}
+                    {% if form.donor_name.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.donor_name.help_text }}</p>
+                    {% endif %}
+                    {% if form.donor_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.donor_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="{{ form.donor_email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Contact Email *
+                        </label>
+                        {{ form.donor_email }}
+                        {% if form.donor_email.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.donor_email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.donor_phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Contact Phone
+                        </label>
+                        {{ form.donor_phone }}
+                        {% if form.donor_phone.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.donor_phone.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.donor_bio.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Bio
+                    </label>
+                    {{ form.donor_bio }}
+                    {% if form.donor_bio.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.donor_bio.help_text }}</p>
+                    {% endif %}
+                    {% if form.donor_bio.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.donor_bio.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="{{ form.donor_max_per_request.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Maximum Amount per Request
+                        </label>
+                        {{ form.donor_max_per_request }}
+                        {% if form.donor_max_per_request.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.donor_max_per_request.help_text }}</p>
+                        {% endif %}
+                        {% if form.donor_max_per_request.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.donor_max_per_request.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.donor_service_area_zipcode.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Service Area ZIP Code
+                        </label>
+                        {{ form.donor_service_area_zipcode }}
+                        {% if form.donor_service_area_zipcode.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.donor_service_area_zipcode.help_text }}</p>
+                        {% endif %}
+                        {% if form.donor_service_area_zipcode.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.donor_service_area_zipcode.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Cause Areas</label>
+                    <div class="grid md:grid-cols-2 gap-2">
+                        {% for choice in form.donor_cause_areas %}
+                            <div class="flex items-center">
+                                {{ choice.tag }}
+                                <label for="{{ choice.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.donor_cause_areas.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.donor_cause_areas.help_text }}</p>
+                    {% endif %}
+                    {% if form.donor_cause_areas.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.donor_cause_areas.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <label for="{{ form.donor_profile_picture.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Profile Picture
+                    </label>
+                    {{ form.donor_profile_picture }}
+                    {% if form.donor_profile_picture.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.donor_profile_picture.help_text }}</p>
+                    {% endif %}
+                    {% if form.donor_profile_picture.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.donor_profile_picture.errors.0 }}</p>
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
             
             <!-- Information Box -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 class="font-semibold text-blue-900 mb-2">Account Approval Process</h3>
                 <ul class="text-sm text-blue-800 space-y-1">
-                    <li><strong>Donors:</strong> Your account will be immediately active and ready to browse and claim requests.</li>
-                    <li><strong>Community-Based Organizations:</strong> Your account will be reviewed by KCDD staff before approval. You'll receive an email notification once approved.</li>
+                    {% if user_type == 'donor' %}
+                        <li><strong>Donors:</strong> Your account will be immediately active and ready to browse and claim requests.</li>
+                    {% else %}
+                        <li><strong>Community-Based Organizations:</strong> Your account will be reviewed by KCDD staff before approval. You'll receive an email notification once approved.</li>
+                    {% endif %}
                 </ul>
             </div>
             
