@@ -6,8 +6,7 @@ services:
     environment:
       - DEBUG=True
       - PORT=8000
-      - BASE_DOMAIN=localhost:8000
-      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,ec2-3-145-106-91.us-east-2.compute.amazonaws.com
       - DATABASE_URL=postgresql://kcdd_user:kcdd_password@db:5432/kcdd_market
       - DB_ENGINE=django.db.backends.postgresql
       - DB_HOST=db
