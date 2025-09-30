@@ -27,5 +27,9 @@ COPY . .
 # Create directory for static files
 RUN mkdir -p staticfiles
 
-# Run the Django application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"] 
+# Create startup script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Run the startup script
+ENTRYPOINT ["/docker-entrypoint.sh"] 
